@@ -43,8 +43,9 @@ impl State {
         }
     }
 
-    // returns size of rom
+    // initializes state and loads rom
     pub fn load_rom(&mut self, rom: &[u8]) {
+        *self = Self::new();
         self.load_font(Font::new());
 
         for (i, byte) in rom.iter().enumerate() {
@@ -71,7 +72,7 @@ impl State {
             flipped = true;
         }
         // shift the bit into position and then XOR it to the byte
-        *pixel_byte ^= (0b10000000 >> pixel_bit_offset);
+        *pixel_byte ^= 0b10000000 >> pixel_bit_offset;
 
         flipped
     }

@@ -22,8 +22,6 @@ fn main() {
     let mut ui_state = ui::State::new();
 
     let mut state = chip8::State::new();
-    let rom = fs::read("./fishie.ch8").expect("no fishie :((");
-    state.load_rom(&rom);
     let mut disassembler = ui::Disassembler::new();
 
     let mut start_time = time::Instant::now();
@@ -36,7 +34,7 @@ fn main() {
 
             gui.prepare();
             gui.ui(|ctx| {
-                ui::top_bar::draw(ctx, &mut ui_state);
+                ui::top_bar::draw(ctx, &mut ui_state, &mut state);
                 disassembler.draw(ctx, &mut ui_state, &state);
             });
 

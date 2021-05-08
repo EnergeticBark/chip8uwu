@@ -1,7 +1,7 @@
+use egui::Color32;
+
 use crate::chip8;
 use crate::ui;
-use egui::output::WidgetType::Label;
-use egui::Color32;
 
 const LIST_HEIGHT: f32 = 200.0;
 
@@ -32,7 +32,10 @@ impl Disassembler {
                 ui.visuals_mut().override_text_color = Some(Color32::LIGHT_GRAY);
             }
 
-            ui.label(format!("{:04x}: {:02x}{:02x} ", list_pc, bytes[0], bytes[1]));
+            ui.label(format!(
+                "{:04x}: {:02x}{:02x} ",
+                list_pc, bytes[0], bytes[1]
+            ));
             ui.colored_label(Color32::from_rgb(128, 140, 255), instr);
             ui.label(args);
         });

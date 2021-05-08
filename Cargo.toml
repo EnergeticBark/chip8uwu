@@ -11,6 +11,7 @@ pixels = { git = "https://github.com/parasyte/pixels.git" }
 winit = "0.24"
 winit_input_helper = "0.9"
 egui = "0.11"
-egui_wgpu_backend = "0.6.0"
+egui_wgpu_backend = "0.7"
 egui_winit_platform = "0.6"
+native-dialog = "0.5"
 log = "0.4"

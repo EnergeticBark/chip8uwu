@@ -10,8 +10,6 @@ pub struct Gui {
     screen_descriptor: ScreenDescriptor,
     rpass: RenderPass,
     paint_jobs: Vec<ClippedMesh>,
-
-    window_open: bool,
 }
 
 impl Gui {
@@ -36,8 +34,6 @@ impl Gui {
             screen_descriptor,
             rpass,
             paint_jobs: Vec::new(),
-
-            window_open: true,
         }
     }
 
