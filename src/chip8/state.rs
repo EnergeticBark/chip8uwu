@@ -2,7 +2,9 @@ use std::error::Error;
 
 use super::op::Op;
 use crate::chip8::font::Font;
+use std::convert::TryFrom;
 
+const ROM_START: u16 = 0x200;
 const SCREEN_START: usize = 0xf00;
 const FONT_START: usize = 0x000;
 
@@ -25,7 +27,7 @@ impl State {
             v: [0x00; 16],
             i: 0x00,
             _sp: 0xfa0,
-            pc: 0x200,
+            pc: ROM_START,
             delay: 0x00,
             sound: 0x00,
             memory: [0x00; 4096],
@@ -49,14 +51,14 @@ impl State {
         self.load_font(Font::new());
 
         for (i, byte) in rom.iter().enumerate() {
-            self.memory[i + 0x200] = *byte;
+            self.memory[ROM_START as usize + i] = *byte;
         }
         self.rom_loaded = true;
     }
 
     fn xor_pixel(&mut self, x: usize, y: usize) -> bool {
         // bounds check
-        if x >= 64 || y >= 64 {
+        if x >= 64 || y >= 32 {
             return false;
         }
 
@@ -211,18 +213,6 @@ impl State {
         }
 
         Ok(())
-    }
-
-    pub fn debug_screen(&self) -> String {
-        let mut output = String::new();
-        for y in 0..32 {
-            for x_bytes in 0..8 {
-                let byte_index = SCREEN_START + y * 8 + x_bytes;
-                output.push_str(&format!("{:08b}", self.memory[byte_index]));
-            }
-            output.push('\n');
-        }
-        output
     }
 
     pub fn draw(&self, frame: &mut [u8]) {
