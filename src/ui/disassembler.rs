@@ -1,4 +1,5 @@
-use egui::Color32;
+use egui::{Color32, FontId};
+use egui::TextStyle::Body;
 
 use crate::chip8;
 use crate::ui;
@@ -42,10 +43,8 @@ impl Disassembler {
     }
 
     fn draw_list(&self, ui: &mut egui::Ui, chip8_state: &chip8::State) {
-        ui.style_mut().body_text_style = egui::TextStyle::Monospace;
-        let line_height = ui
-            .fonts()
-            .row_height(egui::epaint::text::TextStyle::Monospace);
+        ui.style_mut().text_styles.insert(Body, FontId::monospace(11.0));
+        let line_height = ui.text_style_height(&Body);
         ui.spacing_mut().interact_size.y = line_height;
         ui.spacing_mut().item_spacing.y = 0.0;
 
@@ -78,7 +77,7 @@ impl Disassembler {
 
     pub fn draw(
         &mut self,
-        ctx: &egui::CtxRef,
+        ctx: &egui::Context,
         ui_state: &mut ui::State,
         chip8_state: &chip8::State,
     ) {
@@ -88,10 +87,10 @@ impl Disassembler {
             .show(ctx, |ui| {
                 ui.label("All instructions starting starting at 0x200");
                 ui.separator();
-                egui::ScrollArea::from_max_height(LIST_HEIGHT).show(ui, |ui| {
-                    ui.vertical(|ui| {
+                egui::ScrollArea::vertical()
+                    .max_height(LIST_HEIGHT).show(ui, |ui| {
                         self.draw_list(ui, chip8_state);
-                    });
+                       ui.allocate_space(ui.available_size());
                 });
             });
     }

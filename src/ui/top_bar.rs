@@ -5,10 +5,10 @@ use native_dialog::FileDialog;
 use crate::chip8;
 use crate::ui::state::State;
 
-pub fn draw(ctx: &egui::CtxRef, ui_state: &mut State, chip8_state: &mut chip8::State) {
-    egui::TopPanel::top("menubar_container").show(ctx, |ui| {
+pub fn draw(ctx: &egui::Context, ui_state: &mut State, chip8_state: &mut chip8::State) {
+    egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
-            egui::menu::menu(ui, "File", |ui| {
+            egui::menu::menu_button(ui, "File", |ui| {
                 if ui.button("Open...").clicked() {
                     let path = FileDialog::new()
                         .add_filter("CHIP-8 ROM", &["ch8"])
@@ -19,12 +19,14 @@ pub fn draw(ctx: &egui::CtxRef, ui_state: &mut State, chip8_state: &mut chip8::S
                         let rom = fs::read(path).expect("failed to read file");
                         chip8_state.load_rom(&rom);
                     }
+                    ui.close_menu();
                 }
             });
 
-            egui::menu::menu(ui, "Tools", |ui| {
+            egui::menu::menu_button(ui, "Tools", |ui| {
                 if ui.button("Disassemble...").clicked() {
                     ui_state.disassembler_open = true;
+                    ui.close_menu();
                 }
             });
         });

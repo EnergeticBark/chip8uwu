@@ -2,7 +2,6 @@ use std::error::Error;
 
 use super::op::Op;
 use crate::chip8::font::Font;
-use std::convert::TryFrom;
 
 const ROM_START: u16 = 0x200;
 const SCREEN_START: usize = 0xf00;
