@@ -44,35 +44,27 @@ impl Disassembler {
 
     fn draw_list(&self, ui: &mut egui::Ui, chip8_state: &chip8::State) {
         ui.style_mut().text_styles.insert(Body, FontId::monospace(11.0));
-        let line_height = ui.text_style_height(&Body);
-        ui.spacing_mut().interact_size.y = line_height;
+        let row_height = ui.text_style_height(&Body);
+        ui.spacing_mut().interact_size.y = row_height;
         ui.spacing_mut().item_spacing.y = 0.0;
-
         let instructions = chip8_state.memory[0x200..].chunks_exact(2);
-        let total_height_px = instructions.len() as f32 * line_height;
-        let current_scroll = {
-            let margin = ui.visuals().clip_rect_margin;
-            ui.clip_rect().top() - ui.min_rect().top() + margin
-        };
-
-        // start drawing the list, and do some tricks to only draw the lines we need
-        let skip_first = (current_scroll / line_height).floor() as usize;
-        let top_padding = skip_first as f32 * line_height;
-        // draw an empty space above where we're currently scrolled
-        ui.add_space(top_padding);
-
-        let lines_to_draw = (LIST_HEIGHT / line_height).ceil() as usize;
-        for (i, bytes) in instructions.skip(skip_first).enumerate() {
-            let list_pc = 0x200 + (skip_first + i) * 2;
-            self.draw_line(ui, list_pc, chip8_state.pc, bytes);
-            if i > lines_to_draw {
-                break;
-            }
-        }
-
-        let remaining_px = total_height_px - top_padding - lines_to_draw as f32 * line_height;
-        // draw an empty space below us, however many pixels we have remaining
-        ui.add_space(remaining_px);
+        egui::ScrollArea::vertical()
+            .max_height(LIST_HEIGHT)
+            .show_rows(
+                ui,
+                row_height,
+                instructions.len(),
+                |ui, row_range| {
+                    for (i, bytes) in instructions.skip(row_range.start).enumerate() {
+                        let list_pc = 0x200 + (row_range.start + i) * 2;
+                        self.draw_line(ui, list_pc, chip8_state.pc, bytes);
+                        if i > row_range.end {
+                            break;
+                        }
+                    }
+                    ui.allocate_space(ui.available_size());
+                }
+            );
     }
 
     pub fn draw(
@@ -87,11 +79,7 @@ impl Disassembler {
             .show(ctx, |ui| {
                 ui.label("All instructions starting starting at 0x200");
                 ui.separator();
-                egui::ScrollArea::vertical()
-                    .max_height(LIST_HEIGHT).show(ui, |ui| {
-                        self.draw_list(ui, chip8_state);
-                       ui.allocate_space(ui.available_size());
-                });
+                self.draw_list(ui, chip8_state);
             });
     }
 }
