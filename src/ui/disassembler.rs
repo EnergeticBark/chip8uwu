@@ -4,8 +4,6 @@ use egui::TextStyle::Body;
 use crate::chip8;
 use crate::ui;
 
-const LIST_HEIGHT: f32 = 200.0;
-
 pub struct Disassembler {
     follow_current: bool,
 }
@@ -49,7 +47,6 @@ impl Disassembler {
         ui.spacing_mut().item_spacing.y = 0.0;
         let instructions = chip8_state.memory[0x200..].chunks_exact(2);
         egui::ScrollArea::vertical()
-            .max_height(LIST_HEIGHT)
             .show_rows(
                 ui,
                 row_height,
@@ -75,7 +72,7 @@ impl Disassembler {
     ) {
         egui::Window::new("Disassembler")
             .open(&mut ui_state.disassembler_open)
-            .resizable(false)
+            .default_height(300.0)
             .show(ctx, |ui| {
                 ui.label("All instructions starting starting at 0x200");
                 ui.separator();
