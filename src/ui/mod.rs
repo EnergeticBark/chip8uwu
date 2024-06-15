@@ -1,7 +1,8 @@
 pub mod top_bar;
 pub mod disassembler;
 
-mod state;
+mod gui;
+pub mod framework;
+pub mod window;
 
-pub use self::state::State;
 pub use self::disassembler::Disassembler;

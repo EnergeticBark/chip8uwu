@@ -6,7 +6,6 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 
 mod chip8;
-mod wrappers;
 mod ui;
 
 const WIDTH: u32 = 64;
@@ -16,29 +15,20 @@ fn main() {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
 
-    let window = wrappers::window::init_window(&event_loop);
-    let (mut pixels, mut framework) = wrappers::window::init_pixels_and_framework(&window, &event_loop);
-    let mut ui_state = ui::State::new();
-
+    let window = ui::window::init_window(&event_loop);
+    let (mut pixels, mut framework) = ui::window::init_pixels_and_framework(&window, &event_loop);
     let mut state = chip8::State::new();
-    let mut disassembler = ui::Disassembler::new();
-
     let mut start_time = time::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::WindowEvent { ref event, .. } = event {
             framework.handle_event(&event);
         }
-        //gui.handle_event(&event);
 
         if let Event::RedrawRequested(_) = event {
             state.draw(pixels.frame_mut());
 
-            framework.prepare(&window);
-
-            ui::top_bar::draw(&framework.egui_ctx, &mut ui_state, &mut state);
-            disassembler.draw(&framework.egui_ctx, &mut ui_state, &state);
-
+            framework.prepare(&window, &mut state);
 
             let render_result = pixels.render_with(|encoder, render_target, context| {
                 context.scaling_renderer.render(encoder, render_target);

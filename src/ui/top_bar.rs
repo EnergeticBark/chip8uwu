@@ -3,9 +3,9 @@ use std::fs;
 use native_dialog::FileDialog;
 
 use crate::chip8;
-use crate::ui::state::State;
+use crate::ui::gui::Gui;
 
-pub fn draw(ctx: &egui::Context, ui_state: &mut State, chip8_state: &mut chip8::State) {
+pub fn draw(ctx: &egui::Context, ui_state: &mut Gui, chip8_state: &mut chip8::State) {
     egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
         egui::menu::bar(ui, |ui| {
             egui::menu::menu_button(ui, "File", |ui| {
@@ -25,7 +25,7 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut State, chip8_state: &mut chip8::
 
             egui::menu::menu_button(ui, "Tools", |ui| {
                 if ui.button("Disassemble...").clicked() {
-                    ui_state.disassembler_open = true;
+                    ui_state.disassembler.open = true;
                     ui.close_menu();
                 }
             });

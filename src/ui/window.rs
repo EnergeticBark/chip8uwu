@@ -2,10 +2,10 @@ use winit::dpi::LogicalSize;
 use winit::event_loop::EventLoop;
 use winit::window::{Window, WindowBuilder};
 use pixels::{Pixels, SurfaceTexture};
-use crate::wrappers::gui::Framework;
+use crate::ui::framework::Framework;
 
 pub fn init_window<T>(event_loop: &EventLoop<T>) -> Window {
-    let size = LogicalSize::new(crate::WIDTH as f64, crate::HEIGHT as f64);
+    let size = LogicalSize::new(640, 480);
     WindowBuilder::new()
         .with_title("chip8uwu")
         .with_inner_size(size)

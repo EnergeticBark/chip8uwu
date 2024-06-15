@@ -3,18 +3,20 @@ use egui_wgpu::renderer::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
-use crate::ui::State;
+use crate::chip8::State;
+use crate::ui::gui::Gui;
 
 pub struct Framework {
     // State for egui.
-    pub egui_ctx: Context,
+    egui_ctx: Context,
     egui_state: egui_winit::State,
     screen_descriptor: ScreenDescriptor,
     renderer: Renderer,
     paint_jobs: Vec<ClippedPrimitive>,
     textures: TexturesDelta,
 
-    state: State,
+    // State for the GUI.
+    gui: Gui,
 }
 
 impl Framework {
@@ -42,7 +44,7 @@ impl Framework {
             1,
         );
         let textures = TexturesDelta::default();
-        let state = State::new();
+        let gui = Gui::new();
 
         Self {
             egui_ctx,
@@ -51,7 +53,7 @@ impl Framework {
             renderer,
             paint_jobs: Vec::new(),
             textures,
-            state,
+            gui,
         }
     }
 
@@ -69,10 +71,10 @@ impl Framework {
         self.screen_descriptor.pixels_per_point = scale_factor as f32;
     }
 
-    pub(crate) fn prepare(&mut self, window: &Window) {
+    pub(crate) fn prepare(&mut self, window: &Window, chip8_state: &mut State) {
         let raw_input = self.egui_state.take_egui_input(window);
         let output = self.egui_ctx.run(raw_input, |egui_ctx| {
-            // code to draw ui here
+            self.gui.ui(egui_ctx, chip8_state);
         });
 
         self.textures.append(output.textures_delta);
