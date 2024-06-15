@@ -1,9 +1,13 @@
 use std::time;
 
 use log::error;
+use pixels::{Pixels, SurfaceTexture};
+use winit::dpi::LogicalSize;
 use winit::event::Event;
 use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
+use crate::ui::framework::Framework;
 
 mod chip8;
 mod ui;
@@ -14,39 +18,36 @@ const HEIGHT: u32 = 32;
 fn main() {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
+    let window = {
+        let size = LogicalSize::new(640, 480);
+        WindowBuilder::new()
+            .with_title("chip8uwu")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
 
-    let window = ui::window::init_window(&event_loop);
-    let (mut pixels, mut framework) = ui::window::init_pixels_and_framework(&window, &event_loop);
+
+    let (mut pixels, mut framework) = {
+        let window_size = window.inner_size();
+        let scale_factor = window.scale_factor() as f32;
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap();
+        let framework = Framework::new(
+            &event_loop,
+            window_size.width,
+            window_size.height,
+            scale_factor,
+            &pixels,
+        );
+
+        (pixels, framework)
+    };
     let mut state = chip8::State::new();
     let mut start_time = time::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
-        if let Event::WindowEvent { ref event, .. } = event {
-            framework.handle_event(&event);
-        }
-
-        if let Event::RedrawRequested(_) = event {
-            state.draw(pixels.frame_mut());
-
-            framework.prepare(&window, &mut state);
-
-            let render_result = pixels.render_with(|encoder, render_target, context| {
-                context.scaling_renderer.render(encoder, render_target);
-
-                framework.render(encoder, render_target, context);
-
-                Ok(())
-            });
-
-            if render_result
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
-                *control_flow = ControlFlow::Exit;
-                return;
-            }
-        }
-
         if input.update(&event) {
             if input.close_requested() {
                 *control_flow = ControlFlow::Exit;
@@ -58,12 +59,8 @@ fn main() {
             }
 
             if let Some(size) = input.window_resized() {
-                // don't resize if either value is zero to prevent a panic
-                // winit doesn't have Minimize events yet, this should be fixed eventually
-                if size.width > 0 && size.height > 0 {
-                    pixels.resize_surface(size.width, size.height).unwrap();
-                    framework.resize(size.width, size.height);
-                }
+                pixels.resize_surface(size.width, size.height).unwrap();
+                framework.resize(size.width, size.height);
             }
 
             let delta_time = time::Instant::now() - start_time;
@@ -72,6 +69,31 @@ fn main() {
                 start_time = time::Instant::now();
             }
             window.request_redraw();
+        }
+
+        match event {
+            Event::WindowEvent { event, .. } => {
+                framework.handle_event(&event);
+            }
+            Event::RedrawRequested(_) => {
+                state.draw(pixels.frame_mut());
+
+                framework.prepare(&window, &mut state);
+
+                let render_result = pixels.render_with(|encoder, render_target, context| {
+                    context.scaling_renderer.render(encoder, render_target);
+
+                    framework.render(encoder, render_target, context);
+
+                    Ok(())
+                });
+
+                if let Err(err) = render_result {
+                    error!("pixels.render() failed: {}", err);
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
+            _ => (),
         }
     });
 }
