@@ -1,4 +1,5 @@
 use std::error::Error;
+use rand::prelude::*;
 
 use super::op::Op;
 use crate::chip8::font::Font;
@@ -11,11 +12,12 @@ pub struct State {
     pub rom_loaded: bool,
     v: [u8; 16],
     i: u16,
-    _sp: u16,
+    sp: u8,
     pub pc: u16,
     delay: u8,
     sound: u8,
     pub memory: [u8; 4096],
+    stack: [u16; 16],
     keyboard: [bool; 16],
 }
 
@@ -25,11 +27,12 @@ impl State {
             rom_loaded: false,
             v: [0x00; 16],
             i: 0x00,
-            _sp: 0xfa0,
+            sp: 0x00,
             pc: ROM_START,
             delay: 0x00,
             sound: 0x00,
             memory: [0x00; 4096],
+            stack: [0x00; 16],
             keyboard: [false; 16],
         }
     }
@@ -93,9 +96,18 @@ impl State {
                 }
                 self.pc += 2;
             }
-            Op::Rts => {}
+            Op::Rts => {
+                self.sp -= 1; // Decrement stack pointer.
+                self.pc = self.stack[self.sp as usize];
+            }
             Op::Jump(address) => self.pc = address,
-            Op::Call(_) => {}
+            Op::Call(address) => {
+                self.pc += 2; // Increment program counter to get next instruction.
+                self.stack[self.sp as usize] = self.pc; // Push next instruction to the stack.
+                self.sp += 1; // Increment stack pointer.
+
+                self.pc = address;
+            }
             Op::SkipEqLit { v, lit } => {
                 if self.v[v as usize] == lit {
                     self.pc += 2;
@@ -108,7 +120,12 @@ impl State {
                 }
                 self.pc += 2
             }
-            Op::SkipEq { .. } => {}
+            Op::SkipEq { v, v2 } => {
+                if self.v[v as usize] == self.v[v2 as usize] {
+                    self.pc += 2;
+                }
+                self.pc += 2;
+            }
             Op::MviLit { v, lit } => {
                 self.v[v as usize] = lit;
                 self.pc += 2;
@@ -117,23 +134,53 @@ impl State {
                 self.v[v as usize] = self.v[v as usize].wrapping_add(lit);
                 self.pc += 2;
             }
-            Op::Mov { .. } => {}
+            Op::Mov { v, v2 } => {
+                self.v[v as usize] = self.v[v2 as usize];
+                self.pc += 2;
+            }
             Op::Or { .. } => {}
-            Op::And { .. } => {}
+            Op::And { v, v2 } => {
+                let value= self.v[v as usize];
+                let value2 = self.v[v2 as usize];
+                self.v[v as usize] = value & value2;
+                self.pc += 2;
+            }
             Op::Xor { .. } => {}
-            Op::Add { .. } => {}
+            Op::Add { v, v2 } => {
+                let value= self.v[v as usize];
+                let value2 = self.v[v2 as usize];
+                let (result, overflow) = value.overflowing_add(value2);
+                self.v[v as usize] = result;
+                self.v[0xF] = overflow as u8;
+                self.pc += 2
+            }
             Op::Sub { .. } => {}
-            Op::Shr(_) => {}
+            Op::Shr( v ) => {
+                let value = self.v[v as usize];
+                self.v[0xF] = value & 0b00000001;
+                self.v[v as usize] = value >> 1;
+                self.pc += 2;
+            }
             Op::Subb { .. } => {}
-            Op::Shl(_) => {}
+            Op::Shl( v ) => {
+                let value = self.v[v as usize];
+                self.v[0xF] = (value & 0b10000000) >> 7;
+                self.v[v as usize] = value << 1;
+                self.pc += 2;
+            }
             Op::SkipNe { .. } => {}
             Op::SetI(address) => {
                 self.i = address;
                 self.pc += 2;
             }
             Op::JumpPlusV0(_) => {}
-            Op::Rand { .. } => {}
+            Op::Rand { v, lit } => {
+                let random_byte = random::<u8>();
+                self.v[v as usize] = lit & random_byte;
+                self.pc += 2
+            }
             Op::Draw { v, v2, lit } => {
+                let mut flipped = false;
                 for row in 0..=lit - 1 {
                     let line = self.memory[self.i as usize + row as usize];
                     for column in 0..8 {
@@ -142,10 +189,13 @@ impl State {
                             let x = self.v[v as usize] as usize + column as usize;
                             let y = self.v[v2 as usize] as usize + row as usize;
 
-                            self.xor_pixel(x, y);
+                            if self.xor_pixel(x, y) {
+                                flipped = true;
+                            };
                         }
                     }
                 }
+                self.v[0xF] = flipped as u8;
                 self.pc += 2;
             }
             Op::SkipKey(v) => {
@@ -184,8 +234,8 @@ impl State {
                 self.pc += 2;
             }
             Op::AddI(v) => {
-                let val = self.v[v as usize] as u16;
-                self.i = self.i.wrapping_add(val);
+                let value = self.v[v as usize] as u16;
+                self.i = self.i.wrapping_add(value);
                 self.pc += 2;
             }
             Op::SpriteChar(v) => {
@@ -207,8 +257,18 @@ impl State {
                 self.memory[self.i as usize + 2] = ones;
                 self.pc += 2;
             }
-            Op::RegDump(_) => {}
-            Op::RegLoad(_) => {}
+            Op::RegDump(vx) => {
+                for v in 0..=vx {
+                    self.memory[self.i as usize + v as usize] = self.v[v as usize];
+                }
+                self.pc += 2;
+            }
+            Op::RegLoad(vx) => {
+                for v in 0..=vx {
+                    self.v[v as usize] = self.memory[self.i as usize + v as usize];
+                }
+                self.pc += 2;
+            }
         }
 
         Ok(())

@@ -15,3 +15,4 @@ egui-wgpu = "0.22"
 egui-winit = { version = "0.22", default-features = false, features = ["links"] }
 native-dialog = "0.7"
 log = "0.4"
+rand = "0.8"
