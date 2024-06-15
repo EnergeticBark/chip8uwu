@@ -1,7 +1,7 @@
-pub mod op;
+mod op;
 pub use op::Op;
 
 mod font;
 
-pub mod state;
+mod state;
 pub use state::State;

@@ -292,6 +292,9 @@ mod tests {
     #[test]
     fn assign_op_disassemble() {
         let op = Op::new(0x81, 0xf0).unwrap();
-        assert_eq!("MOV        V1,Vf", op.disassemble());
+        assert_eq!(
+            (String::from("MOV        "), String::from("V1, Vf")),
+            op.disassemble()
+        );
     }
 }
