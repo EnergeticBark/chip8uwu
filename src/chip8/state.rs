@@ -10,7 +10,7 @@ const FONT_START: usize = 0x000;
 
 pub struct State {
     pub rom_loaded: bool,
-    v: [u8; 16],
+    pub v: [u8; 16],
     i: u16,
     sp: u8,
     pub pc: u16,

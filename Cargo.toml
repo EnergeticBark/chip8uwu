@@ -11,6 +11,7 @@ pixels = "0.13"
 winit = "0.28"
 winit_input_helper = "0.14"
 egui = "0.22"
+egui_extras = "0.22"
 egui-wgpu = "0.22"
 egui-winit = { version = "0.22", default-features = false, features = ["links"] }
 native-dialog = "0.7"

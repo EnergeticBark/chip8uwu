@@ -28,6 +28,10 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut Gui, chip8_state: &mut chip8::St
                     ui_state.disassembler.open = true;
                     ui.close_menu();
                 }
+                if ui.button("Registers...").clicked() {
+                    ui_state.registers.open = true;
+                    ui.close_menu();
+                }
             });
         });
     });
