@@ -1,3 +1,5 @@
+use egui::FontId;
+use egui::TextStyle::Body;
 use egui_extras::{Column, TableBuilder};
 use crate::chip8;
 
@@ -37,6 +39,7 @@ impl Registers {
                                 });
                             })
                             .body(|mut body| {
+                                body.ui_mut().style_mut().text_styles.insert(Body, FontId::monospace(11.0));
                                 for v in 0..chip8_state.v.len() {
                                     body.row(14.0, |mut row| {
                                         row.col(|ui| {
