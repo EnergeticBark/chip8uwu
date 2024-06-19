@@ -3,7 +3,7 @@ use std::time;
 use log::error;
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::Event;
+use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
@@ -65,9 +65,32 @@ fn main() {
 
             let delta_time = time::Instant::now() - start_time;
             if delta_time > time::Duration::from_millis(16) && state.rom_loaded {
-                state.emulate().unwrap();
+                state.delay = state.delay.saturating_sub(1); // Decrement the delay register.
                 start_time = time::Instant::now();
             }
+            state.keyboard = [
+                input.key_held(VirtualKeyCode::X),
+                input.key_held(VirtualKeyCode::Key1),
+                input.key_held(VirtualKeyCode::Key2),
+                input.key_held(VirtualKeyCode::Key3),
+                input.key_held(VirtualKeyCode::Q),
+                input.key_held(VirtualKeyCode::W),
+                input.key_held(VirtualKeyCode::E),
+                input.key_held(VirtualKeyCode::A),
+                input.key_held(VirtualKeyCode::S),
+                input.key_held(VirtualKeyCode::D),
+                input.key_held(VirtualKeyCode::Z),
+                input.key_held(VirtualKeyCode::C),
+                input.key_held(VirtualKeyCode::Key4),
+                input.key_held(VirtualKeyCode::R),
+                input.key_held(VirtualKeyCode::F),
+                input.key_held(VirtualKeyCode::V),
+            ];
+            if state.rom_loaded {
+                state.emulate().unwrap(); // Execute the next instruction.
+            }
+
+
             window.request_redraw();
         }
 

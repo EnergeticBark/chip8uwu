@@ -14,11 +14,11 @@ pub struct State {
     i: u16,
     sp: u8,
     pub pc: u16,
-    delay: u8,
+    pub delay: u8,
     sound: u8,
     pub memory: [u8; 4096],
     stack: [u16; 16],
-    keyboard: [bool; 16],
+    pub keyboard: [bool; 16],
 }
 
 impl State {
@@ -154,7 +154,14 @@ impl State {
                 self.v[0xF] = overflow as u8;
                 self.pc += 2
             }
-            Op::Sub { .. } => {}
+            Op::Sub { v, v2 } => {
+                let value = self.v[v as usize];
+                let value2 = self.v[v2 as usize];
+                let (result, underflow) = value.overflowing_sub(value2);
+                self.v[v as usize] = result;
+                self.v[0xF] = !underflow as u8;
+                self.pc += 2;
+            }
             Op::Shr( v ) => {
                 let value = self.v[v as usize];
                 self.v[0xF] = value & 0b00000001;
@@ -168,7 +175,12 @@ impl State {
                 self.v[v as usize] = value << 1;
                 self.pc += 2;
             }
-            Op::SkipNe { .. } => {}
+            Op::SkipNe { v, v2 } => {
+                if self.v[v as usize] != self.v[v2 as usize] {
+                    self.pc += 2;
+                }
+                self.pc += 2;
+            }
             Op::SetI(address) => {
                 self.i = address;
                 self.pc += 2;
