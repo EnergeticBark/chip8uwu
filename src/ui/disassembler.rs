@@ -64,7 +64,7 @@ fn draw_line(ui: &mut egui::Ui, list_pc: usize, chip8_pc: u16, bytes: &[u8]) {
     };
     ui.horizontal_wrapped(|ui| {
         // if both are zeros, draw grayed out text
-        if bytes[0] == 0 && bytes[1] == 0 {
+        if bytes[0..2] == [0, 0] {
             ui.visuals_mut().override_text_color = Some(Color32::from_rgb(100, 100, 100));
         } else if list_pc as u16 == chip8_pc {
             ui.visuals_mut().override_text_color = Some(Color32::LIGHT_GRAY);

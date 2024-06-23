@@ -1,5 +1,5 @@
-use std::error::Error;
 use rand::prelude::*;
+use std::error::Error;
 
 use super::op::Op;
 use crate::chip8::font::Font;
@@ -140,14 +140,14 @@ impl State {
             }
             Op::Or { .. } => {}
             Op::And { v, v2 } => {
-                let value= self.v[v as usize];
+                let value = self.v[v as usize];
                 let value2 = self.v[v2 as usize];
                 self.v[v as usize] = value & value2;
                 self.pc += 2;
             }
             Op::Xor { .. } => {}
             Op::Add { v, v2 } => {
-                let value= self.v[v as usize];
+                let value = self.v[v as usize];
                 let value2 = self.v[v2 as usize];
                 let (result, overflow) = value.overflowing_add(value2);
                 self.v[v as usize] = result;
@@ -162,14 +162,14 @@ impl State {
                 self.v[0xF] = !underflow as u8;
                 self.pc += 2;
             }
-            Op::Shr( v ) => {
+            Op::Shr(v) => {
                 let value = self.v[v as usize];
                 self.v[0xF] = value & 0b00000001;
                 self.v[v as usize] = value >> 1;
                 self.pc += 2;
             }
             Op::Subb { .. } => {}
-            Op::Shl( v ) => {
+            Op::Shl(v) => {
                 let value = self.v[v as usize];
                 self.v[0xF] = (value & 0b10000000) >> 7;
                 self.v[v as usize] = value << 1;

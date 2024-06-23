@@ -1,8 +1,8 @@
 use egui::Context;
+
 use crate::chip8::State;
 use crate::ui;
-use crate::ui::Disassembler;
-use crate::ui::registers::Registers;
+use crate::ui::{Disassembler, Registers};
 
 pub struct Gui {
     pub disassembler: Disassembler,

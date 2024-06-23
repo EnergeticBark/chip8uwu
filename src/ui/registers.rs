@@ -1,7 +1,8 @@
-use egui::FontId;
 use egui::TextStyle::Body;
-use egui_extras::{Column, TableBuilder};
-use crate::chip8;
+use egui::{FontId, Ui};
+use egui_extras::{Column, TableBody, TableBuilder, TableRow};
+
+use crate::chip8::State;
 
 pub struct Registers {
     pub open: bool,
@@ -9,50 +10,51 @@ pub struct Registers {
 
 impl Registers {
     pub fn new() -> Self {
-        Self {
-            open: false,
-        }
+        Self { open: false }
     }
 
-    pub fn draw(
-        &mut self,
-        ctx: &egui::Context,
-        chip8_state: &chip8::State,
-    ) {
+    pub fn draw(&mut self, ctx: &egui::Context, chip8_state: &State) {
         egui::Window::new("Registers")
             .open(&mut self.open)
             .auto_sized()
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.vertical(|ui| {
-                        TableBuilder::new(ui)
-                            .striped(true)
-                            .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
-                            .column(Column::auto())
-                            .column(Column::auto())
-                            .header(20.0, |mut header| {
-                                header.col(|ui| {
-                                    ui.strong("Register");
-                                });
-                                header.col(|ui| {
-                                    ui.strong("Value");
-                                });
-                            })
-                            .body(|mut body| {
-                                body.ui_mut().style_mut().text_styles.insert(Body, FontId::monospace(11.0));
-                                for v in 0..chip8_state.v.len() {
-                                    body.row(14.0, |mut row| {
-                                        row.col(|ui| {
-                                            ui.label(format!("V{:01X}", v));
-                                        });
-                                        row.col(|ui| {
-                                            ui.label(format!("0x{:02X}", chip8_state.v[v]));
-                                        });
-                                    });
-                                }
-                            });
-                    });
-                });
+            .show(ctx, |ui| draw_table(ui, chip8_state));
+    }
+}
+
+fn draw_table(ui: &mut Ui, chip8_state: &State) {
+    ui.vertical(|ui| {
+        TableBuilder::new(ui)
+            .striped(true)
+            .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+            .column(Column::auto())
+            .column(Column::auto())
+            .header(20.0, draw_header_row)
+            .body(|body| draw_body_rows(body, chip8_state));
+    });
+}
+
+fn draw_header_row(mut header: TableRow) {
+    header.col(|ui| {
+        ui.strong("Register");
+    });
+    header.col(|ui| {
+        ui.strong("Value");
+    });
+}
+
+fn draw_body_rows(mut body: TableBody, chip8_state: &State) {
+    body.ui_mut()
+        .style_mut()
+        .text_styles
+        .insert(Body, FontId::monospace(11.0));
+    for v in 0..chip8_state.v.len() {
+        body.row(14.0, |mut row| {
+            row.col(|ui| {
+                ui.label(format!("V{:01X}", v));
             });
+            row.col(|ui| {
+                ui.label(format!("0x{:02X}", chip8_state.v[v]));
+            });
+        });
     }
 }

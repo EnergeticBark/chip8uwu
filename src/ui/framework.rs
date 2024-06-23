@@ -3,6 +3,7 @@ use egui_wgpu::renderer::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
+
 use crate::chip8::State;
 use crate::ui::gui::Gui;
 

@@ -7,6 +7,7 @@ use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
+
 use crate::ui::framework::Framework;
 
 mod chip8;
@@ -27,7 +28,6 @@ fn main() {
             .build(&event_loop)
             .unwrap()
     };
-
 
     let (mut pixels, mut framework) = {
         let window_size = window.inner_size();
@@ -89,7 +89,6 @@ fn main() {
             if state.rom_loaded {
                 state.emulate().unwrap(); // Execute the next instruction.
             }
-
 
             window.request_redraw();
         }
