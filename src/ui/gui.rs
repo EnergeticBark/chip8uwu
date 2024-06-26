@@ -1,3 +1,4 @@
+use std::fs;
 use egui::Context;
 
 use crate::chip8::State;
@@ -21,5 +22,15 @@ impl Gui {
         ui::top_bar::draw(ctx, self, chip8_state);
         self.disassembler.draw(ctx, chip8_state);
         self.registers.draw(ctx, chip8_state);
+        
+        // Loads a rom if it's dragged and dropped onto the window.
+        ctx.input(|i| {
+            if !i.raw.dropped_files.is_empty() {
+                let dropped_file = i.raw.dropped_files.first().unwrap().clone();
+                let path = dropped_file.path.unwrap();
+                let rom = fs::read(path).expect("failed to read file");
+                chip8_state.load_rom(&rom);
+            }
+        });
     }
 }
