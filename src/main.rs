@@ -45,7 +45,8 @@ fn main() {
         (pixels, framework)
     };
     let mut state = chip8::State::new();
-    let mut start_time = time::Instant::now();
+    let mut delay_timer = time::Instant::now();
+    let mut clock_timer = time::Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         if input.update(&event) {
@@ -63,10 +64,10 @@ fn main() {
                 framework.resize(size.width, size.height);
             }
 
-            let delta_time = time::Instant::now() - start_time;
-            if delta_time > time::Duration::from_millis(16) && state.rom_loaded {
+            let delay_timer_delta = time::Instant::now() - delay_timer;
+            if delay_timer_delta > time::Duration::from_millis(16) && state.rom_loaded {
                 state.delay = state.delay.saturating_sub(1); // Decrement the delay register.
-                start_time = time::Instant::now();
+                delay_timer = time::Instant::now();
             }
             state.keyboard = [
                 input.key_held(VirtualKeyCode::X),
@@ -86,8 +87,12 @@ fn main() {
                 input.key_held(VirtualKeyCode::F),
                 input.key_held(VirtualKeyCode::V),
             ];
+            let clock_timer_delta = time::Instant::now() - clock_timer;
             if state.rom_loaded {
-                state.emulate().unwrap(); // Execute the next instruction.
+                for _ in 0.. clock_timer_delta.as_millis() / 2 {
+                    state.emulate().unwrap(); // Execute the next instruction.
+                }
+                clock_timer = time::Instant::now();
             }
 
             window.request_redraw();

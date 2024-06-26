@@ -60,10 +60,9 @@ impl State {
 
     fn xor_pixel(&mut self, x: usize, y: usize) -> bool {
         // bounds check
-        if x >= 64 || y >= 32 {
-            return false;
-        }
-
+        let x = x % 64;
+        let y = y % 32;
+        
         let mut flipped = false;
 
         // get the address of the byte where the pixel should be drawn
