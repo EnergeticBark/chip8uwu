@@ -138,14 +138,24 @@ impl State {
                 self.v[v as usize] = self.v[v2 as usize];
                 self.pc += 2;
             }
-            Op::Or { .. } => {}
+            Op::Or { v, v2 } => {
+                let value = self.v[v as usize];
+                let value2 = self.v[v2 as usize];
+                self.v[v as usize] = value | value2;
+                self.pc += 2;
+            }
             Op::And { v, v2 } => {
                 let value = self.v[v as usize];
                 let value2 = self.v[v2 as usize];
                 self.v[v as usize] = value & value2;
                 self.pc += 2;
             }
-            Op::Xor { .. } => {}
+            Op::Xor { v, v2 } => {
+                let value = self.v[v as usize];
+                let value2 = self.v[v2 as usize];
+                self.v[v as usize] = value ^ value2;
+                self.pc += 2;
+            }
             Op::Add { v, v2 } => {
                 let value = self.v[v as usize];
                 let value2 = self.v[v2 as usize];
@@ -164,15 +174,22 @@ impl State {
             }
             Op::Shr(v) => {
                 let value = self.v[v as usize];
-                self.v[0xF] = value & 0b00000001;
                 self.v[v as usize] = value >> 1;
+                self.v[0xF] = value & 0b00000001;
                 self.pc += 2;
             }
-            Op::Subb { .. } => {}
+            Op::Subb { v, v2 } => {
+                let value = self.v[v as usize];
+                let value2 = self.v[v2 as usize];
+                let (result, underflow) = value2.overflowing_sub(value);
+                self.v[v as usize] = result;
+                self.v[0xF] = !underflow as u8;
+                self.pc += 2;
+            }
             Op::Shl(v) => {
                 let value = self.v[v as usize];
-                self.v[0xF] = (value & 0b10000000) >> 7;
                 self.v[v as usize] = value << 1;
+                self.v[0xF] = (value & 0b10000000) >> 7;
                 self.pc += 2;
             }
             Op::SkipNe { v, v2 } => {
@@ -185,7 +202,9 @@ impl State {
                 self.i = address;
                 self.pc += 2;
             }
-            Op::JumpPlusV0(_) => {}
+            Op::JumpPlusV0( address ) => {
+                self.pc = address + self.v[0x0] as u16;
+            }
             Op::Rand { v, lit } => {
                 let random_byte = random::<u8>();
                 self.v[v as usize] = lit & random_byte;

@@ -22,7 +22,7 @@ impl Gui {
         ui::top_bar::draw(ctx, self, chip8_state);
         self.disassembler.draw(ctx, chip8_state);
         self.registers.draw(ctx, chip8_state);
-        
+
         // Loads a rom if it's dragged and dropped onto the window.
         ctx.input(|i| {
             if !i.raw.dropped_files.is_empty() {
