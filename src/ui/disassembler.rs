@@ -1,5 +1,5 @@
-use egui::{Color32, FontId};
 use egui::TextStyle::Body;
+use egui::{Color32, FontId};
 
 use crate::chip8;
 
@@ -9,21 +9,15 @@ pub struct Disassembler {
 
 impl Disassembler {
     pub fn new() -> Self {
-        Self {
-            open: false,
-        }
+        Self { open: false }
     }
 
-    pub fn draw(
-        &mut self,
-        ctx: &egui::Context,
-        chip8_state: &chip8::State,
-    ) {
-        egui::Window::new("Disassembler")
-            .open(&mut self.open)
-            .default_height(300.0)
+    pub fn draw(&mut self, ctx: &egui::Context, chip8_state: &chip8::State) {
+        egui::SidePanel::right("Disassembler")
+            .default_width(300.0)
+            .resizable(false)
             .show(ctx, |ui| {
-                ui.label("All instructions starting starting at 0x200");
+                ui.heading("Disassembler");
                 ui.separator();
                 draw_list(ui, chip8_state);
             });
@@ -31,27 +25,23 @@ impl Disassembler {
 }
 
 fn draw_list(ui: &mut egui::Ui, chip8_state: &chip8::State) {
-    ui.style_mut().text_styles.insert(Body, FontId::monospace(11.0));
+    ui.style_mut()
+        .text_styles
+        .insert(Body, FontId::monospace(11.0));
     let row_height = ui.text_style_height(&Body);
     ui.spacing_mut().interact_size.y = row_height;
     ui.spacing_mut().item_spacing.y = 0.0;
     let instructions = chip8_state.memory[0x200..].chunks_exact(2);
-    egui::ScrollArea::vertical()
-        .show_rows(
-            ui,
-            row_height,
-            instructions.len(),
-            |ui, row_range| {
-                for (i, bytes) in instructions.skip(row_range.start).enumerate() {
-                    let list_pc = 0x200 + (row_range.start + i) * 2;
-                    draw_line(ui, list_pc, chip8_state.pc, bytes);
-                    if i > row_range.end {
-                        break;
-                    }
-                }
-                ui.allocate_space(ui.available_size());
+    egui::ScrollArea::vertical().show_rows(ui, row_height, instructions.len(), |ui, row_range| {
+        for (i, bytes) in instructions.skip(row_range.start).enumerate() {
+            let list_pc = 0x200 + (row_range.start + i) * 2;
+            draw_line(ui, list_pc, chip8_state.pc, bytes);
+            if i > row_range.end {
+                break;
             }
-        );
+        }
+        ui.allocate_space(ui.available_size());
+    });
 }
 
 fn draw_line(ui: &mut egui::Ui, list_pc: usize, chip8_pc: u16, bytes: &[u8]) {

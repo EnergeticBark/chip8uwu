@@ -62,7 +62,7 @@ impl State {
         // bounds check
         let x = x % 64;
         let y = y % 32;
-        
+
         let mut flipped = false;
 
         // get the address of the byte where the pixel should be drawn
@@ -201,7 +201,7 @@ impl State {
                 self.i = address;
                 self.pc += 2;
             }
-            Op::JumpPlusV0( address ) => {
+            Op::JumpPlusV0(address) => {
                 self.pc = address + self.v[0x0] as u16;
             }
             Op::Rand { v, lit } => {

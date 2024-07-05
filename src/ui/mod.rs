@@ -1,8 +1,8 @@
-mod top_bar;
 mod disassembler;
+mod top_bar;
 
-mod gui;
 pub mod framework;
+mod gui;
 mod registers;
 
 use self::disassembler::Disassembler;

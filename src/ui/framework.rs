@@ -1,7 +1,9 @@
+use egui::load::SizedTexture;
 use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
 use egui_wgpu::{Renderer, ScreenDescriptor};
-use pixels::{wgpu, PixelsContext};
 use pixels::wgpu::StoreOp::Store;
+use pixels::{wgpu, PixelsContext};
+use wgpu::TextureViewDescriptor;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
 
@@ -26,7 +28,7 @@ impl Framework {
         width: u32,
         height: u32,
         scale_factor: f32,
-        pixels: &pixels::Pixels
+        pixels: &pixels::Pixels,
     ) -> Self {
         let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
 
@@ -42,14 +44,18 @@ impl Framework {
             size_in_pixels: [width, height],
             pixels_per_point: scale_factor,
         };
-        let renderer = Renderer::new(
-            pixels.device(),
-            pixels.render_texture_format(),
-            None,
-            1,
-        );
+        let mut renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
         let textures = TexturesDelta::default();
-        let gui = Gui::new();
+
+        let texture = pixels.texture();
+        let texture_view = texture.create_view(&TextureViewDescriptor::default());
+        let egui_texture = renderer.register_native_texture(
+            pixels.device(),
+            &texture_view,
+            wgpu::FilterMode::Nearest,
+        );
+        let sized_texture = SizedTexture::new(egui_texture, [64.0, 32.0]);
+        let gui = Gui::new(sized_texture);
 
         Self {
             egui_state,
@@ -82,7 +88,8 @@ impl Framework {
         });
 
         self.textures.append(output.textures_delta);
-        self.egui_state.handle_platform_output(window, output.platform_output);
+        self.egui_state
+            .handle_platform_output(window, output.platform_output);
         self.paint_jobs = self
             .egui_state
             .egui_ctx()
@@ -109,7 +116,7 @@ impl Framework {
 
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-               label: Some("egui"),
+                label: Some("egui"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: render_target,
                     resolve_target: None,
@@ -123,7 +130,8 @@ impl Framework {
                 occlusion_query_set: None,
             });
 
-            self.renderer.render(&mut rpass, &self.paint_jobs, &self.screen_descriptor);
+            self.renderer
+                .render(&mut rpass, &self.paint_jobs, &self.screen_descriptor);
         }
 
         let textures = std::mem::take(&mut self.textures);

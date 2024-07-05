@@ -14,9 +14,8 @@ impl Registers {
     }
 
     pub fn draw(&mut self, ctx: &egui::Context, chip8_state: &State) {
-        egui::Window::new("Registers")
-            .open(&mut self.open)
-            .auto_sized()
+        egui::SidePanel::left("Registers")
+            .resizable(false)
             .show(ctx, |ui| draw_table(ui, chip8_state));
     }
 }
