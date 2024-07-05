@@ -1,6 +1,7 @@
-use egui::{ClippedPrimitive, Context, TexturesDelta};
-use egui_wgpu::renderer::{Renderer, ScreenDescriptor};
+use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
+use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
+use pixels::wgpu::StoreOp::Store;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
 
@@ -9,7 +10,6 @@ use crate::ui::gui::Gui;
 
 pub struct Framework {
     // State for egui.
-    egui_ctx: Context,
     egui_state: egui_winit::State,
     screen_descriptor: ScreenDescriptor,
     renderer: Renderer,
@@ -31,9 +31,13 @@ impl Framework {
         let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
 
         let egui_ctx = Context::default();
-        let mut egui_state = egui_winit::State::new(event_loop);
-        egui_state.set_max_texture_side(max_texture_size);
-        egui_state.set_pixels_per_point(scale_factor);
+        let egui_state = egui_winit::State::new(
+            egui_ctx.clone(),
+            ViewportId::ROOT,
+            &event_loop,
+            Some(scale_factor),
+            Some(max_texture_size),
+        );
         let screen_descriptor = ScreenDescriptor {
             size_in_pixels: [width, height],
             pixels_per_point: scale_factor,
@@ -48,7 +52,6 @@ impl Framework {
         let gui = Gui::new();
 
         Self {
-            egui_ctx,
             egui_state,
             screen_descriptor,
             renderer,
@@ -58,8 +61,8 @@ impl Framework {
         }
     }
 
-    pub(crate) fn handle_event(&mut self, event: &winit::event::WindowEvent) {
-        let _ = self.egui_state.on_event(&self.egui_ctx, event);
+    pub(crate) fn handle_event(&mut self, window: &Window, event: &winit::event::WindowEvent) {
+        let _ = self.egui_state.on_window_event(window, event);
     }
 
     pub(crate) fn resize(&mut self, width: u32, height: u32) {
@@ -74,13 +77,16 @@ impl Framework {
 
     pub(crate) fn prepare(&mut self, window: &Window, chip8_state: &mut State) {
         let raw_input = self.egui_state.take_egui_input(window);
-        let output = self.egui_ctx.run(raw_input, |egui_ctx| {
+        let output = self.egui_state.egui_ctx().run(raw_input, |egui_ctx| {
             self.gui.ui(egui_ctx, chip8_state);
         });
 
         self.textures.append(output.textures_delta);
-        self.egui_state.handle_platform_output(window, &self.egui_ctx, output.platform_output);
-        self.paint_jobs = self.egui_ctx.tessellate(output.shapes);
+        self.egui_state.handle_platform_output(window, output.platform_output);
+        self.paint_jobs = self
+            .egui_state
+            .egui_ctx()
+            .tessellate(output.shapes, self.screen_descriptor.pixels_per_point);
     }
 
     pub(crate) fn render(
@@ -109,10 +115,12 @@ impl Framework {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
-                        store: true,
+                        store: Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             });
 
             self.renderer.render(&mut rpass, &self.paint_jobs, &self.screen_descriptor);

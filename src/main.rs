@@ -3,8 +3,9 @@ use std::time;
 use log::error;
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoop};
+use winit::event::{Event, WindowEvent};
+use winit::keyboard::KeyCode;
+use winit::event_loop::EventLoop;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
@@ -17,7 +18,7 @@ const WIDTH: u32 = 64;
 const HEIGHT: u32 = 32;
 
 fn main() {
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
     let window = {
         let size = LogicalSize::new(640, 480);
@@ -48,10 +49,10 @@ fn main() {
     let mut delay_timer = time::Instant::now();
     let mut clock_timer = time::Instant::now();
 
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(|event, elwt| {
         if input.update(&event) {
             if input.close_requested() {
-                *control_flow = ControlFlow::Exit;
+                elwt.exit();
                 return;
             }
 
@@ -70,22 +71,22 @@ fn main() {
                 delay_timer = time::Instant::now();
             }
             state.keyboard = [
-                input.key_held(VirtualKeyCode::X),
-                input.key_held(VirtualKeyCode::Key1),
-                input.key_held(VirtualKeyCode::Key2),
-                input.key_held(VirtualKeyCode::Key3),
-                input.key_held(VirtualKeyCode::Q),
-                input.key_held(VirtualKeyCode::W),
-                input.key_held(VirtualKeyCode::E),
-                input.key_held(VirtualKeyCode::A),
-                input.key_held(VirtualKeyCode::S),
-                input.key_held(VirtualKeyCode::D),
-                input.key_held(VirtualKeyCode::Z),
-                input.key_held(VirtualKeyCode::C),
-                input.key_held(VirtualKeyCode::Key4),
-                input.key_held(VirtualKeyCode::R),
-                input.key_held(VirtualKeyCode::F),
-                input.key_held(VirtualKeyCode::V),
+                input.key_held(KeyCode::KeyX),
+                input.key_held(KeyCode::Digit1),
+                input.key_held(KeyCode::Digit2),
+                input.key_held(KeyCode::Digit3),
+                input.key_held(KeyCode::KeyQ),
+                input.key_held(KeyCode::KeyW),
+                input.key_held(KeyCode::KeyE),
+                input.key_held(KeyCode::KeyA),
+                input.key_held(KeyCode::KeyS),
+                input.key_held(KeyCode::KeyD),
+                input.key_held(KeyCode::KeyZ),
+                input.key_held(KeyCode::KeyC),
+                input.key_held(KeyCode::Digit4),
+                input.key_held(KeyCode::KeyR),
+                input.key_held(KeyCode::KeyF),
+                input.key_held(KeyCode::KeyV),
             ];
             let clock_timer_delta = time::Instant::now() - clock_timer;
             if state.rom_loaded {
@@ -99,10 +100,7 @@ fn main() {
         }
 
         match event {
-            Event::WindowEvent { event, .. } => {
-                framework.handle_event(&event);
-            }
-            Event::RedrawRequested(_) => {
+            Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
                 state.draw(pixels.frame_mut());
 
                 framework.prepare(&window, &mut state);
@@ -111,16 +109,18 @@ fn main() {
                     context.scaling_renderer.render(encoder, render_target);
 
                     framework.render(encoder, render_target, context);
-
                     Ok(())
                 });
 
                 if let Err(err) = render_result {
                     error!("pixels.render() failed: {}", err);
-                    *control_flow = ControlFlow::Exit;
+                    elwt.exit();
                 }
-            }
+            },
+            Event::WindowEvent { event, .. } => {
+                framework.handle_event(&window, &event);
+            },
             _ => (),
         }
-    });
+    }).unwrap();
 }

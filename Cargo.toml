@@ -7,13 +7,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pixels = "0.13"
-winit = "0.28"
-winit_input_helper = "0.14"
-egui = "0.22"
-egui_extras = "0.22"
-egui-wgpu = "0.22"
-egui-winit = { version = "0.22", default-features = false, features = ["links"] }
+pixels = { git = "https://github.com/mkrasnitski/pixels.git", rev = "6493408a9db08b576cf487ad0d94aee650021689" }
+winit = "0.29"
+winit_input_helper = "0.16"
+egui = "0.26"
+egui_extras = "0.26"
+egui-wgpu = "0.26"
+egui-winit = { version = "0.26", default-features = false }
 native-dialog = "0.7"
 log = "0.4"
 rand = "0.8"
