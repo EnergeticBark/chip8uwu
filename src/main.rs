@@ -1,7 +1,5 @@
 use std::time;
 
-use log::error;
-use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
@@ -30,21 +28,8 @@ fn main() {
             .unwrap()
     };
 
-    let (mut pixels, mut framework) = {
-        let window_size = window.inner_size();
-        let scale_factor = window.scale_factor() as f32;
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        let pixels = Pixels::new(WIDTH, HEIGHT, surface_texture).unwrap();
-        let framework = Framework::new(
-            &event_loop,
-            window_size.width,
-            window_size.height,
-            scale_factor,
-            &pixels,
-        );
+    let mut framework = Framework::new(&event_loop, &window, WIDTH, HEIGHT);
 
-        (pixels, framework)
-    };
     let mut state = chip8::State::new();
     let mut delay_timer = time::Instant::now();
     let mut clock_timer = time::Instant::now();
@@ -62,7 +47,6 @@ fn main() {
                 }
 
                 if let Some(size) = input.window_resized() {
-                    pixels.resize_surface(size.width, size.height).unwrap();
                     framework.resize(size.width, size.height);
                 }
 
@@ -105,19 +89,11 @@ fn main() {
                     event: WindowEvent::RedrawRequested,
                     ..
                 } => {
-                    state.draw(pixels.frame_mut());
+                    framework.screen.draw(&framework.queue, state.frame_rgba());
 
                     framework.prepare(&window, &mut state);
 
-                    let render_result = pixels.render_with(|encoder, render_target, context| {
-                        framework.render(encoder, render_target, context);
-                        Ok(())
-                    });
-
-                    if let Err(err) = render_result {
-                        error!("pixels.render() failed: {}", err);
-                        elwt.exit();
-                    }
+                    framework.render();
                 }
                 Event::WindowEvent { event, .. } => {
                     framework.handle_event(&window, &event);

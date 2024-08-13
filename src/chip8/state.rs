@@ -304,8 +304,9 @@ impl State {
         Ok(())
     }
 
-    pub fn draw(&self, frame: &mut [u8]) {
-        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+    pub fn frame_rgba(&self) -> Vec<u8> {
+        let mut frame = Vec::new();
+        for i in 0..64 * 32 {
             let screen_bit = {
                 let byte = SCREEN_START + i / 8;
                 let bit_offset = i % 8;
@@ -314,12 +315,13 @@ impl State {
 
             if screen_bit & 0b10000000 != 0 {
                 // draw white
-                pixel.copy_from_slice(&[0xff, 0xff, 0xff, 0xff]);
+                frame.append(&mut [0xff, 0xff, 0xff, 0xff].to_vec());
             } else {
                 // draw black
-                pixel.copy_from_slice(&[0x00, 0x00, 0x00, 0xff]);
+                frame.append(&mut [0x00, 0x00, 0x00, 0xff].to_vec());
             }
         }
+        frame
     }
 }
 
