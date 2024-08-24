@@ -1,8 +1,12 @@
-use rand::prelude::*;
 use std::error::Error;
+
+use rand::prelude::*;
 
 use super::op::Op;
 use crate::chip8::font::Font;
+
+pub const WIDTH: usize = 64;
+pub const HEIGHT: usize = 32;
 
 const ROM_START: u16 = 0x200;
 const SCREEN_START: usize = 0xf00;
@@ -304,9 +308,9 @@ impl State {
         Ok(())
     }
 
-    pub fn frame_rgba(&self) -> Vec<u8> {
+    pub fn frame_grayscale(&self) -> Vec<u8> {
         let mut frame = Vec::new();
-        for i in 0..64 * 32 {
+        for i in 0..WIDTH * HEIGHT {
             let screen_bit = {
                 let byte = SCREEN_START + i / 8;
                 let bit_offset = i % 8;
@@ -315,10 +319,10 @@ impl State {
 
             if screen_bit & 0b10000000 != 0 {
                 // draw white
-                frame.append(&mut [0xff, 0xff, 0xff, 0xff].to_vec());
+                frame.push(0xff);
             } else {
                 // draw black
-                frame.append(&mut [0x00, 0x00, 0x00, 0xff].to_vec());
+                frame.push(0x00);
             }
         }
         frame

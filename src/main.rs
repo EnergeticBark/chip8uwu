@@ -1,105 +1,85 @@
-use std::time;
+use std::{thread, time};
 
-use winit::dpi::LogicalSize;
-use winit::event::{Event, WindowEvent};
-use winit::event_loop::EventLoop;
-use winit::keyboard::KeyCode;
-use winit::window::WindowBuilder;
-use winit_input_helper::WinitInputHelper;
-
-use crate::ui::framework::Framework;
+use eframe::Frame;
+use egui::{Context, Key, ViewportBuilder};
 
 mod chip8;
 mod ui;
 
-const WIDTH: u32 = 64;
-const HEIGHT: u32 = 32;
+struct App {
+    chip8: chip8::State,
+    gui: ui::gui::Gui,
+    delay_timer: time::Instant,
+}
+
+impl App {
+    fn new() -> Self {
+        App {
+            chip8: chip8::State::new(),
+            gui: ui::gui::Gui::new(),
+            delay_timer: time::Instant::now(),
+        }
+    }
+}
+
+impl eframe::App for App {
+    fn update(&mut self, ctx: &Context, _: &mut Frame) {
+        ctx.input(|i| {
+            let keys = [
+                Key::X,
+                Key::Num1,
+                Key::Num2,
+                Key::Num3,
+                Key::Q,
+                Key::W,
+                Key::E,
+                Key::A,
+                Key::S,
+                Key::D,
+                Key::Z,
+                Key::C,
+                Key::Num4,
+                Key::R,
+                Key::F,
+                Key::V,
+            ];
+
+            let delay_timer_delta = time::Instant::now() - self.delay_timer;
+            if delay_timer_delta > time::Duration::from_millis(16) {
+                self.chip8.delay = self.chip8.delay.saturating_sub(1); // Decrement the delay register.
+                self.delay_timer = time::Instant::now();
+            }
+            self.chip8.keyboard = keys.map(|key| i.key_down(key));
+
+            let cycles_to_run = (500.0 * i.unstable_dt) as usize;
+
+            if self.chip8.rom_loaded {
+                for _ in 0..cycles_to_run {
+                    self.chip8.emulate().unwrap();
+                }
+            }
+        });
+
+        self.gui.ui(ctx, &mut self.chip8);
+    }
+}
 
 fn main() {
-    let event_loop = EventLoop::new().unwrap();
-    let mut input = WinitInputHelper::new();
-    let window = {
-        let size = LogicalSize::new(900, 480);
-        WindowBuilder::new()
-            .with_title("chip8uwu")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
+    let native_options = eframe::NativeOptions {
+        viewport: ViewportBuilder::default().with_min_inner_size([900.0, 480.0]),
+        ..Default::default()
     };
-
-    let mut framework = Framework::new(&event_loop, &window, WIDTH, HEIGHT);
-
-    let mut state = chip8::State::new();
-    let mut delay_timer = time::Instant::now();
-    let mut clock_timer = time::Instant::now();
-
-    event_loop
-        .run(|event, elwt| {
-            if input.update(&event) {
-                if input.close_requested() {
-                    elwt.exit();
-                    return;
-                }
-
-                if let Some(scale_factor) = input.scale_factor() {
-                    framework.scale_factor(scale_factor);
-                }
-
-                if let Some(size) = input.window_resized() {
-                    framework.resize(size.width, size.height);
-                }
-
-                let delay_timer_delta = time::Instant::now() - delay_timer;
-                if delay_timer_delta > time::Duration::from_millis(16) && state.rom_loaded {
-                    state.delay = state.delay.saturating_sub(1); // Decrement the delay register.
-                    delay_timer = time::Instant::now();
-                }
-                state.keyboard = [
-                    input.key_held(KeyCode::KeyX),
-                    input.key_held(KeyCode::Digit1),
-                    input.key_held(KeyCode::Digit2),
-                    input.key_held(KeyCode::Digit3),
-                    input.key_held(KeyCode::KeyQ),
-                    input.key_held(KeyCode::KeyW),
-                    input.key_held(KeyCode::KeyE),
-                    input.key_held(KeyCode::KeyA),
-                    input.key_held(KeyCode::KeyS),
-                    input.key_held(KeyCode::KeyD),
-                    input.key_held(KeyCode::KeyZ),
-                    input.key_held(KeyCode::KeyC),
-                    input.key_held(KeyCode::Digit4),
-                    input.key_held(KeyCode::KeyR),
-                    input.key_held(KeyCode::KeyF),
-                    input.key_held(KeyCode::KeyV),
-                ];
-                let clock_timer_delta = time::Instant::now() - clock_timer;
-                if state.rom_loaded {
-                    for _ in 0..clock_timer_delta.as_millis() / 2 {
-                        state.emulate().unwrap(); // Execute the next instruction.
-                    }
-                    clock_timer = time::Instant::now();
-                }
-
-                window.request_redraw();
-            }
-
-            match event {
-                Event::WindowEvent {
-                    event: WindowEvent::RedrawRequested,
-                    ..
-                } => {
-                    framework.screen.draw(&framework.queue, state.frame_rgba());
-
-                    framework.prepare(&window, &mut state);
-
-                    framework.render();
-                }
-                Event::WindowEvent { event, .. } => {
-                    framework.handle_event(&window, &event);
-                }
-                _ => (),
-            }
-        })
-        .unwrap();
+    eframe::run_native(
+        "chip8uwu",
+        native_options,
+        Box::new(|cc| {
+            let egui_ctx = cc.egui_ctx.clone();
+            thread::spawn(move || loop {
+                thread::sleep(time::Duration::from_millis(1));
+                egui_ctx.request_repaint();
+            });
+            Ok(Box::new(App::new()))
+        }),
+    )
+    .unwrap();
 }

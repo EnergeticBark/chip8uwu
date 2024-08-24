@@ -7,9 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu = "0.20"
-winit = "0.29"
-winit_input_helper = "0.16"
+eframe = { version = "0.28", default-features = false, features = ["wgpu"] }
 egui = "0.28"
 egui_extras = "0.28"
 egui-wgpu = "0.28"

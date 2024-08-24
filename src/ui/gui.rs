@@ -1,7 +1,7 @@
 use std::fs;
 
-use egui::load::SizedTexture;
-use egui::Context;
+use eframe::epaint::textures::TextureOptions;
+use egui::{ColorImage, Context, TextureHandle};
 
 use crate::chip8::State;
 use crate::ui;
@@ -10,15 +10,15 @@ use crate::ui::{Disassembler, Registers};
 pub struct Gui {
     pub disassembler: Disassembler,
     pub registers: Registers,
-    texture: SizedTexture, // Chip8's Pixels framebuffer as a texture.
+    screen: Option<TextureHandle>, // Chip8's framebuffer as a texture.
 }
 
 impl Gui {
-    pub fn new(texture: SizedTexture) -> Self {
+    pub fn new() -> Self {
         Self {
             disassembler: Disassembler::new(),
             registers: Registers::new(),
-            texture,
+            screen: None,
         }
     }
 
@@ -27,8 +27,20 @@ impl Gui {
         self.disassembler.draw(ctx, chip8_state);
         self.registers.draw(ctx, chip8_state);
         egui::CentralPanel::default().show(ctx, |ui| {
+            let frame = self.screen.get_or_insert_with(|| {
+                ctx.load_texture(
+                    "Chip8 Screen",
+                    ColorImage::from_gray([64, 32], &[0; 2048]),
+                    TextureOptions::NEAREST,
+                )
+            });
+
+            frame.set(
+                ColorImage::from_gray([64, 32], &chip8_state.frame_grayscale()),
+                TextureOptions::NEAREST,
+            );
             ui.add(
-                egui::Image::new(self.texture)
+                egui::Image::new(&*frame)
                     .maintain_aspect_ratio(true)
                     .shrink_to_fit(),
             );
