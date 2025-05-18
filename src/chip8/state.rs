@@ -43,9 +43,9 @@ impl State {
 
     fn load_font(&mut self, font: Font) {
         let mut mem_index = FONT_START;
-        for char in font.0.iter() {
-            for line in char.iter() {
-                self.memory[mem_index] = *line;
+        for char in font.0 {
+            for line in char {
+                self.memory[mem_index] = line;
                 mem_index += 1;
             }
         }

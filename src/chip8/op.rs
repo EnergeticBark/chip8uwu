@@ -240,18 +240,18 @@ impl Op {
         }
     }
 
-    pub fn disassemble(&self) -> (String, String) {
+    pub fn disassemble(self) -> (String, String) {
         let instruction = self.instruction();
         let args = match self {
             Op::Cls | Op::Rts => String::new(),
 
-            Op::Jump(address) | Op::Call(address) => format!("${:03x}", address),
+            Op::Jump(address) | Op::Call(address) => format!("${address:03x}"),
 
             Op::SkipEqLit { v, lit }
             | Op::SkipNeLit { v, lit }
             | Op::MviLit { v, lit }
             | Op::AdiLit { v, lit }
-            | Op::Rand { v, lit } => format!("V{:01x}, #${:02x}", v, lit),
+            | Op::Rand { v, lit } => format!("V{v:01x}, #${lit:02x}"),
 
             Op::SkipEq { v, v2 }
             | Op::Mov { v, v2 }
@@ -261,7 +261,7 @@ impl Op {
             | Op::Add { v, v2 }
             | Op::Sub { v, v2 }
             | Op::Subb { v, v2 }
-            | Op::SkipNe { v, v2 } => format!("V{:01x}, V{:01x}", v, v2),
+            | Op::SkipNe { v, v2 } => format!("V{v:01x}, V{v2:01x}"),
 
             Op::Shr(v)
             | Op::Shl(v)
@@ -269,19 +269,19 @@ impl Op {
             | Op::SkipNoKey(v)
             | Op::GetKey(v)
             | Op::SpriteChar(v)
-            | Op::MovBcd(v) => format!("V{:01x}", v),
+            | Op::MovBcd(v) => format!("V{v:01x}"),
 
-            Op::GetDelay(v) => format!("V{:01x}, DELAY", v),
-            Op::Delay(v) => format!("DELAY, V{:01x}", v),
-            Op::Sound(v) => format!("SOUND, V{:01x}", v),
-            Op::AddI(v) => format!("I, V{:01x}", v),
-            Op::RegDump(v) => format!("(I), V0-V{:01x}", v),
-            Op::RegLoad(v) => format!("V0-V{:01x}, (I)", v),
-            Op::SetI(address) => format!("I, #${:03x}", address),
-            Op::JumpPlusV0(address) => format!("#${:03x}(V0)", address),
-            Op::Draw { v, v2, lit } => format!("V{:01x}, V{:01x}, #${:01x}", v, v2, lit),
+            Op::GetDelay(v) => format!("V{v:01x}, DELAY"),
+            Op::Delay(v) => format!("DELAY, V{v:01x}"),
+            Op::Sound(v) => format!("SOUND, V{v:01x}"),
+            Op::AddI(v) => format!("I, V{v:01x}"),
+            Op::RegDump(v) => format!("(I), V0-V{v:01x}"),
+            Op::RegLoad(v) => format!("V0-V{v:01x}, (I)"),
+            Op::SetI(address) => format!("I, #${address:03x}"),
+            Op::JumpPlusV0(address) => format!("#${address:03x}(V0)"),
+            Op::Draw { v, v2, lit } => format!("V{v:01x}, V{v2:01x}, #${lit:01x}"),
         };
-        (format!("{:-10} ", instruction), args)
+        (format!("{instruction:-10} "), args)
     }
 }
 
