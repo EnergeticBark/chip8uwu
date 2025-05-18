@@ -1,6 +1,6 @@
 use std::fs;
 
-use native_dialog::FileDialog;
+use native_dialog::DialogBuilder;
 
 use crate::chip8;
 use crate::ui::gui::Gui;
@@ -10,9 +10,10 @@ pub fn draw(ctx: &egui::Context, ui_state: &mut Gui, chip8_state: &mut chip8::St
         egui::menu::bar(ui, |ui| {
             egui::menu::menu_button(ui, "File", |ui| {
                 if ui.button("Open...").clicked() {
-                    let path = FileDialog::new()
-                        .add_filter("CHIP-8 ROM", &["ch8"])
-                        .show_open_single_file()
+                    let path = DialogBuilder::file()
+                        .add_filter("CHIP-8 ROM", ["ch8"])
+                        .open_single_file()
+                        .show()
                         .unwrap();
 
                     if let Some(path) = path {

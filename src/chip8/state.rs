@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rand::prelude::*;
+use rand::random;
 
 use super::op::Op;
 use crate::chip8::font::Font;
