@@ -66,80 +66,35 @@ impl Op {
         let bad_instruction_error = Err(
             format!("bad instruction: {byte1:02x} {byte2:02x}").into()
         );
+
+        let v = reg1_from_opcode(byte1, byte2);
         
         let first_nibble = byte1 >> 4;
         let last_nibble = byte2 & 0x0f;
         match (first_nibble, byte2) {
             (0x0, 0xE0) => Ok(Op::Cls),
             (0x0, 0xEE) => Ok(Op::Rts),
-            (0x1, ..) => Ok(Op::Jump(addr_from_opcode(byte1, byte2))),
-            (0x2, ..) => Ok(Op::Call(addr_from_opcode(byte1, byte2))),
-            (0x3, ..)  => Ok(Op::SkipEqLit {
-                v: reg1_from_opcode(byte1, byte2),
-                lit: byte2,
-            }),
-            (0x4, ..) => Ok(Op::SkipNeLit {
-                v: reg1_from_opcode(byte1, byte2),
-                lit: byte2,
-            }),
-            (0x5, ..) => Ok(Op::SkipEq {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
-            (0x6, ..) => Ok(Op::MviLit {
-                v: reg1_from_opcode(byte1, byte2),
-                lit: byte2,
-            }),
-            (0x7, ..) => Ok(Op::AdiLit {
-                v: reg1_from_opcode(byte1, byte2),
-                lit: byte2,
-            }),
-
-            (0x8, _) if last_nibble == 0x0 => Ok(Op::Mov {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
-            (0x8, _) if last_nibble == 0x1 => Ok(Op::Or {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
-            (0x8, _) if last_nibble == 0x2 => Ok(Op::And {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
-            (0x8, _) if last_nibble == 0x3 => Ok(Op::Xor {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
-            (0x8, _) if last_nibble == 0x4 => Ok(Op::Add {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
-            (0x8, _) if last_nibble == 0x5 => Ok(Op::Sub {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
+            (0x1, _) => Ok(Op::Jump(addr_from_opcode(byte1, byte2))),
+            (0x2, _) => Ok(Op::Call(addr_from_opcode(byte1, byte2))),
+            (0x3, _)  => Ok(Op::SkipEqLit { v, lit: byte2 }),
+            (0x4, _) => Ok(Op::SkipNeLit { v, lit: byte2 }),
+            (0x5, _) => Ok(Op::SkipEq { v, v2: reg2_from_opcode(byte1, byte2) }),
+            (0x6, _) => Ok(Op::MviLit { v, lit: byte2 }),
+            (0x7, _) => Ok(Op::AdiLit { v, lit: byte2 }),
+            (0x8, _) if last_nibble == 0x0 => Ok(Op::Mov { v, v2: reg2_from_opcode(byte1, byte2) }),
+            (0x8, _) if last_nibble == 0x1 => Ok(Op::Or { v, v2: reg2_from_opcode(byte1, byte2) }),
+            (0x8, _) if last_nibble == 0x2 => Ok(Op::And { v, v2: reg2_from_opcode(byte1, byte2) }),
+            (0x8, _) if last_nibble == 0x3 => Ok(Op::Xor { v, v2: reg2_from_opcode(byte1, byte2) }),
+            (0x8, _) if last_nibble == 0x4 => Ok(Op::Add { v, v2: reg2_from_opcode(byte1, byte2) }),
+            (0x8, _) if last_nibble == 0x5 => Ok(Op::Sub { v, v2: reg2_from_opcode(byte1, byte2) }),
             (0x8, _) if last_nibble == 0x6 => Ok(Op::Shr(reg1_from_opcode(byte1, byte2))),
-            (0x8, _) if last_nibble == 0x7 => Ok(Op::Subb {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
+            (0x8, _) if last_nibble == 0x7 => Ok(Op::Subb { v, v2: reg2_from_opcode(byte1, byte2) }),
             (0x8, _) if last_nibble == 0xe => Ok(Op::Shl(reg1_from_opcode(byte1, byte2))),
-            (0x9, _) => Ok(Op::SkipNe {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-            }),
+            (0x9, _) => Ok(Op::SkipNe { v, v2: reg2_from_opcode(byte1, byte2) }),
             (0xa, _) => Ok(Op::SetI(addr_from_opcode(byte1, byte2))),
             (0xb, _) => Ok(Op::JumpPlusV0(addr_from_opcode(byte1, byte2))),
-            (0xc, _) => Ok(Op::Rand {
-                v: reg1_from_opcode(byte1, byte2),
-                lit: byte2,
-            }),
-            (0xd, _) => Ok(Op::Draw {
-                v: reg1_from_opcode(byte1, byte2),
-                v2: reg2_from_opcode(byte1, byte2),
-                lit: last_nibble,
-            }),
+            (0xc, _) => Ok(Op::Rand { v, lit: byte2 }),
+            (0xd, _) => Ok(Op::Draw { v, v2: reg2_from_opcode(byte1, byte2), lit: last_nibble }),
             (0xe, 0x9e) => Ok(Op::SkipKey(reg1_from_opcode(byte1, byte2))),
             (0xe, 0xa1) => Ok(Op::SkipNoKey(reg1_from_opcode(byte1, byte2))),
             (0xf, 0x07) => Ok(Op::GetDelay(reg1_from_opcode(byte1, byte2))),
