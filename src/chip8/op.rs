@@ -38,166 +38,120 @@ pub enum Op {
     RegLoad(u8),
 }
 
+// Get the 12-bit address part of a 16-bit opcode.
+// Example: Byte 1: 0x*X, Byte 2: 0xYY
+// Returns: 0x0XYY
+fn addr_from_opcode(byte1: u8, byte2: u8) -> u16 {
+    let addr_high = u16::from(byte1) & 0x0f;
+    let addr_low = u16::from(byte2);
+    (addr_high << 8) | addr_low
+}
+
+// Get the first 4-bit register part of a 16-bit opcode.
+// Example: Byte 1: 0x*X, Byte 2: 0x**
+// Returns: 0x0X
+fn reg1_from_opcode(byte1: u8, _: u8) -> u8 {
+    byte1 & 0x0f
+}
+
+// Get the second 4-bit register part of a 16-bit opcode.
+// Example: Byte 1: 0x**, Byte 2: 0xY*
+// Returns: 0x0Y
+fn reg2_from_opcode(_: u8, byte2: u8) -> u8 {
+    byte2 >> 4
+}
+
 impl Op {
     pub fn new(byte1: u8, byte2: u8) -> Result<Self, Box<dyn Error>> {
+        let bad_instruction_error = Err(
+            format!("bad instruction: {byte1:02x} {byte2:02x}").into()
+        );
+        
         let first_nibble = byte1 >> 4;
-        match first_nibble {
-            0x00 => match byte2 {
-                0xE0 => Ok(Op::Cls),
-                0xEE => Ok(Op::Rts),
-                _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
-            },
-            0x01 => {
-                let addr_high = u16::from(byte1) & 0x0f;
-                let addr_low = u16::from(byte2);
-                let address = (addr_high << 8) | addr_low;
+        let last_nibble = byte2 & 0x0f;
+        match (first_nibble, byte2) {
+            (0x0, 0xE0) => Ok(Op::Cls),
+            (0x0, 0xEE) => Ok(Op::Rts),
+            (0x1, ..) => Ok(Op::Jump(addr_from_opcode(byte1, byte2))),
+            (0x2, ..) => Ok(Op::Call(addr_from_opcode(byte1, byte2))),
+            (0x3, ..)  => Ok(Op::SkipEqLit {
+                v: reg1_from_opcode(byte1, byte2),
+                lit: byte2,
+            }),
+            (0x4, ..) => Ok(Op::SkipNeLit {
+                v: reg1_from_opcode(byte1, byte2),
+                lit: byte2,
+            }),
+            (0x5, ..) => Ok(Op::SkipEq {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x6, ..) => Ok(Op::MviLit {
+                v: reg1_from_opcode(byte1, byte2),
+                lit: byte2,
+            }),
+            (0x7, ..) => Ok(Op::AdiLit {
+                v: reg1_from_opcode(byte1, byte2),
+                lit: byte2,
+            }),
 
-                Ok(Op::Jump(address))
-            }
-            0x02 => {
-                let addr_high = u16::from(byte1) & 0x0f;
-                let addr_low = u16::from(byte2);
-                let address = (addr_high << 8) | addr_low;
-
-                Ok(Op::Call(address))
-            }
-            0x03 => {
-                let register = byte1 & 0x0f;
-                Ok(Op::SkipEqLit {
-                    v: register,
-                    lit: byte2,
-                })
-            }
-            0x04 => {
-                let register = byte1 & 0x0f;
-                Ok(Op::SkipNeLit {
-                    v: register,
-                    lit: byte2,
-                })
-            }
-            0x05 => {
-                let register = byte1 & 0x0f;
-                let register2 = byte2 >> 4;
-                Ok(Op::SkipEq {
-                    v: register,
-                    v2: register2,
-                })
-            }
-            0x06 => {
-                let register = byte1 & 0x0f;
-                Ok(Op::MviLit {
-                    v: register,
-                    lit: byte2,
-                })
-            }
-            0x07 => {
-                let register = byte1 & 0x0f;
-                Ok(Op::AdiLit {
-                    v: register,
-                    lit: byte2,
-                })
-            }
-            0x08 => {
-                let register = byte1 & 0x0f;
-                let register2 = byte2 >> 4;
-                let last_nibble = byte2 & 0x0f;
-                match last_nibble {
-                    0x00 => Ok(Op::Mov {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x01 => Ok(Op::Or {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x02 => Ok(Op::And {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x03 => Ok(Op::Xor {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x04 => Ok(Op::Add {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x05 => Ok(Op::Sub {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x06 => Ok(Op::Shr(register)),
-                    0x07 => Ok(Op::Subb {
-                        v: register,
-                        v2: register2,
-                    }),
-                    0x0e => Ok(Op::Shl(register)),
-                    _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
-                }
-            }
-            0x09 => {
-                let register = byte1 & 0x0f;
-                let register2 = byte2 >> 4;
-                Ok(Op::SkipNe {
-                    v: register,
-                    v2: register2,
-                })
-            }
-            0x0a => {
-                let addr_high = u16::from(byte1) & 0x0f;
-                let addr_low = u16::from(byte2);
-                let address = (addr_high << 8) | addr_low;
-
-                Ok(Op::SetI(address))
-            }
-            0x0b => {
-                let addr_high = u16::from(byte1) & 0x0f;
-                let addr_low = u16::from(byte2);
-                let address = (addr_high << 8) | addr_low;
-
-                Ok(Op::JumpPlusV0(address))
-            }
-            0x0c => {
-                let register = byte1 & 0x0f;
-                Ok(Op::Rand {
-                    v: register,
-                    lit: byte2,
-                })
-            }
-            0x0d => {
-                let register = byte1 & 0x0f;
-                let register2 = byte2 >> 4;
-                let n = byte2 & 0x0f;
-                Ok(Op::Draw {
-                    v: register,
-                    v2: register2,
-                    lit: n,
-                })
-            }
-            0x0e => {
-                let register = byte1 & 0x0f;
-                match byte2 {
-                    0x9e => Ok(Op::SkipKey(register)),
-                    0xa1 => Ok(Op::SkipNoKey(register)),
-                    _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
-                }
-            }
-            0x0f => {
-                let register = byte1 & 0x0f;
-                match byte2 {
-                    0x07 => Ok(Op::GetDelay(register)),
-                    0x0A => Ok(Op::GetKey(register)),
-                    0x15 => Ok(Op::Delay(register)),
-                    0x18 => Ok(Op::Sound(register)),
-                    0x1e => Ok(Op::AddI(register)),
-                    0x29 => Ok(Op::SpriteChar(register)),
-                    0x33 => Ok(Op::MovBcd(register)),
-                    0x55 => Ok(Op::RegDump(register)),
-                    0x65 => Ok(Op::RegLoad(register)),
-                    _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
-                }
-            }
-            _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
+            (0x8, _) if last_nibble == 0x0 => Ok(Op::Mov {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0x1 => Ok(Op::Or {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0x2 => Ok(Op::And {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0x3 => Ok(Op::Xor {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0x4 => Ok(Op::Add {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0x5 => Ok(Op::Sub {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0x6 => Ok(Op::Shr(reg1_from_opcode(byte1, byte2))),
+            (0x8, _) if last_nibble == 0x7 => Ok(Op::Subb {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0x8, _) if last_nibble == 0xe => Ok(Op::Shl(reg1_from_opcode(byte1, byte2))),
+            (0x9, _) => Ok(Op::SkipNe {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+            }),
+            (0xa, _) => Ok(Op::SetI(addr_from_opcode(byte1, byte2))),
+            (0xb, _) => Ok(Op::JumpPlusV0(addr_from_opcode(byte1, byte2))),
+            (0xc, _) => Ok(Op::Rand {
+                v: reg1_from_opcode(byte1, byte2),
+                lit: byte2,
+            }),
+            (0xd, _) => Ok(Op::Draw {
+                v: reg1_from_opcode(byte1, byte2),
+                v2: reg2_from_opcode(byte1, byte2),
+                lit: last_nibble,
+            }),
+            (0xe, 0x9e) => Ok(Op::SkipKey(reg1_from_opcode(byte1, byte2))),
+            (0xe, 0xa1) => Ok(Op::SkipNoKey(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x07) => Ok(Op::GetDelay(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x0A) => Ok(Op::GetKey(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x15) => Ok(Op::Delay(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x18) => Ok(Op::Sound(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x1e) => Ok(Op::AddI(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x29) => Ok(Op::SpriteChar(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x33) => Ok(Op::MovBcd(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x55) => Ok(Op::RegDump(reg1_from_opcode(byte1, byte2))),
+            (0xf, 0x65) => Ok(Op::RegLoad(reg1_from_opcode(byte1, byte2))),
+            _ => bad_instruction_error,
         }
     }
 
