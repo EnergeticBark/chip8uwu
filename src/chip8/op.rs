@@ -66,45 +66,48 @@ impl Op {
         let address = addr_from_opcode(byte1, byte2);
         let v = reg1_from_opcode(byte1, byte2);
         let v2 = reg2_from_opcode(byte1, byte2);
+        let lit = byte2;
         
-        let first_nibble = byte1 >> 4;
-        let last_nibble = byte2 & 0x0f;
+        let nibble1 = byte1 >> 4;
+        let nibble2 = byte1 & 0x0f;
+        let nibble3 = byte2 >> 4;
+        let nibble4 = byte2 & 0x0f;
         
-        let op = match (first_nibble, byte2) {
-            (0x0, 0xE0) => Op::Cls,
-            (0x0, 0xEE) => Op::Rts,
-            (0x1, _) => Op::Jump(address),
-            (0x2, _) => Op::Call(address),
-            (0x3, _)  => Op::SkipEqLit { v, lit: byte2 },
-            (0x4, _) => Op::SkipNeLit { v, lit: byte2 },
-            (0x5, _) => Op::SkipEq { v, v2 },
-            (0x6, _) => Op::MviLit { v, lit: byte2 },
-            (0x7, _) => Op::AdiLit { v, lit: byte2 },
-            (0x8, _) if last_nibble == 0x0 => Op::Mov { v, v2 },
-            (0x8, _) if last_nibble == 0x1 => Op::Or { v, v2 },
-            (0x8, _) if last_nibble == 0x2 => Op::And { v, v2 },
-            (0x8, _) if last_nibble == 0x3 => Op::Xor { v, v2 },
-            (0x8, _) if last_nibble == 0x4 => Op::Add { v, v2 },
-            (0x8, _) if last_nibble == 0x5 => Op::Sub { v, v2 },
-            (0x8, _) if last_nibble == 0x6 => Op::Shr(v),
-            (0x8, _) if last_nibble == 0x7 => Op::Subb { v, v2 },
-            (0x8, _) if last_nibble == 0xe => Op::Shl(v),
-            (0x9, _) => Op::SkipNe { v, v2 },
-            (0xa, _) => Op::SetI(address),
-            (0xb, _) => Op::JumpPlusV0(address),
-            (0xc, _) => Op::Rand { v, lit: byte2 },
-            (0xd, _) => Op::Draw { v, v2, lit: last_nibble },
-            (0xe, 0x9e) => Op::SkipKey(v),
-            (0xe, 0xa1) => Op::SkipNoKey(v),
-            (0xf, 0x07) => Op::GetDelay(v),
-            (0xf, 0x0A) => Op::GetKey(v),
-            (0xf, 0x15) => Op::Delay(v),
-            (0xf, 0x18) => Op::Sound(v),
-            (0xf, 0x1e) => Op::AddI(v),
-            (0xf, 0x29) => Op::SpriteChar(v),
-            (0xf, 0x33) => Op::MovBcd(v),
-            (0xf, 0x55) => Op::RegDump(v),
-            (0xf, 0x65) => Op::RegLoad(v),
+        let op = match (nibble1, nibble3, nibble4) {
+            (0x0, 0xe, 0x0) => Op::Cls,
+            (0x0, 0xe, 0xe) => Op::Rts,
+            (0x1, ..) => Op::Jump(address),
+            (0x2, ..) => Op::Call(address),
+            (0x3, ..)  => Op::SkipEqLit { v, lit },
+            (0x4, ..) => Op::SkipNeLit { v, lit },
+            (0x5, ..) => Op::SkipEq { v, v2 },
+            (0x6, ..) => Op::MviLit { v, lit },
+            (0x7, ..) => Op::AdiLit { v, lit },
+            (0x8, _, 0x0) => Op::Mov { v, v2 },
+            (0x8, _, 0x1) => Op::Or { v, v2 },
+            (0x8, _, 0x2) => Op::And { v, v2 },
+            (0x8, _, 0x3) => Op::Xor { v, v2 },
+            (0x8, _, 0x4) => Op::Add { v, v2 },
+            (0x8, _, 0x5) => Op::Sub { v, v2 },
+            (0x8, _, 0x6) => Op::Shr(v),
+            (0x8, _, 0x7) => Op::Subb { v, v2 },
+            (0x8, _, 0xe) => Op::Shl(v),
+            (0x9, ..) => Op::SkipNe { v, v2 },
+            (0xa, ..) => Op::SetI(address),
+            (0xb, ..) => Op::JumpPlusV0(address),
+            (0xc, ..) => Op::Rand { v, lit },
+            (0xd, _, lit) => Op::Draw { v, v2, lit },
+            (0xe, 0x9, 0xe) => Op::SkipKey(v),
+            (0xe, 0xa, 0x1) => Op::SkipNoKey(v),
+            (0xf, 0x0, 0x7) => Op::GetDelay(v),
+            (0xf, 0x0, 0xa) => Op::GetKey(v),
+            (0xf, 0x1, 0x5) => Op::Delay(v),
+            (0xf, 0x1, 0x8) => Op::Sound(v),
+            (0xf, 0x1, 0xe) => Op::AddI(v),
+            (0xf, 0x2, 0x9) => Op::SpriteChar(v),
+            (0xf, 0x3, 0x3) => Op::MovBcd(v),
+            (0xf, 0x5, 0x5) => Op::RegDump(v),
+            (0xf, 0x6, 0x5) => Op::RegLoad(v),
             _ => bad_instruction_error?,
         };
         Ok(op)
