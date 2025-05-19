@@ -43,9 +43,8 @@ impl eframe::App for App {
                 Key::F,
                 Key::V,
             ];
-
-            let delay_timer_delta = time::Instant::now() - self.delay_timer;
-            if delay_timer_delta > time::Duration::from_millis(16) {
+            
+            if self.delay_timer.elapsed() > time::Duration::from_millis(16) {
                 self.chip8.delay = self.chip8.delay.saturating_sub(1); // Decrement the delay register.
                 self.delay_timer = time::Instant::now();
             }

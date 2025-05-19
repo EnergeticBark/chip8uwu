@@ -35,7 +35,8 @@ fn draw_list(ui: &mut egui::Ui, chip8_state: &chip8::State) {
     egui::ScrollArea::vertical().show_rows(ui, row_height, instructions.len(), |ui, row_range| {
         for (i, bytes) in instructions.skip(row_range.start).enumerate() {
             let list_pc = 0x200 + (row_range.start + i) * 2;
-            draw_line(ui, list_pc, chip8_state.pc, bytes);
+            let highlighted =  chip8_state.pc == u16::try_from(list_pc).unwrap();
+                draw_line(ui, list_pc, highlighted, bytes);
             if i > row_range.end {
                 break;
             }
@@ -44,7 +45,7 @@ fn draw_list(ui: &mut egui::Ui, chip8_state: &chip8::State) {
     });
 }
 
-fn draw_line(ui: &mut egui::Ui, list_pc: usize, chip8_pc: u16, bytes: &[u8]) {
+fn draw_line(ui: &mut egui::Ui, list_pc: usize, highlighted: bool, bytes: &[u8]) {
     let (instr, args) = {
         if let Ok(op) = chip8::Op::new(bytes[0], bytes[1]) {
             op.disassemble()
@@ -56,7 +57,7 @@ fn draw_line(ui: &mut egui::Ui, list_pc: usize, chip8_pc: u16, bytes: &[u8]) {
         // if both are zeros, draw grayed out text
         if bytes[0..2] == [0, 0] {
             ui.visuals_mut().override_text_color = Some(Color32::from_rgb(100, 100, 100));
-        } else if list_pc as u16 == chip8_pc {
+        } else if highlighted {
             ui.visuals_mut().override_text_color = Some(Color32::LIGHT_GRAY);
         }
 

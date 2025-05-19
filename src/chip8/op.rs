@@ -45,18 +45,18 @@ impl Op {
             0x00 => match byte2 {
                 0xE0 => Ok(Op::Cls),
                 0xEE => Ok(Op::Rts),
-                _ => Err(format!("bad instruction: {:02x} {:02x}", byte1, byte2).into()),
+                _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
             },
             0x01 => {
-                let addr_high = byte1 as u16 & 0x0f;
-                let addr_low = byte2 as u16;
+                let addr_high = u16::from(byte1) & 0x0f;
+                let addr_low = u16::from(byte2);
                 let address = (addr_high << 8) | addr_low;
 
                 Ok(Op::Jump(address))
             }
             0x02 => {
-                let addr_high = byte1 as u16 & 0x0f;
-                let addr_low = byte2 as u16;
+                let addr_high = u16::from(byte1) & 0x0f;
+                let addr_low = u16::from(byte2);
                 let address = (addr_high << 8) | addr_low;
 
                 Ok(Op::Call(address))
@@ -132,7 +132,7 @@ impl Op {
                         v2: register2,
                     }),
                     0x0e => Ok(Op::Shl(register)),
-                    _ => Err(format!("bad instruction: {:02x} {:02x}", byte1, byte2).into()),
+                    _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
                 }
             }
             0x09 => {
@@ -144,15 +144,15 @@ impl Op {
                 })
             }
             0x0a => {
-                let addr_high = byte1 as u16 & 0x0f;
-                let addr_low = byte2 as u16;
+                let addr_high = u16::from(byte1) & 0x0f;
+                let addr_low = u16::from(byte2);
                 let address = (addr_high << 8) | addr_low;
 
                 Ok(Op::SetI(address))
             }
             0x0b => {
-                let addr_high = byte1 as u16 & 0x0f;
-                let addr_low = byte2 as u16;
+                let addr_high = u16::from(byte1) & 0x0f;
+                let addr_low = u16::from(byte2);
                 let address = (addr_high << 8) | addr_low;
 
                 Ok(Op::JumpPlusV0(address))
@@ -179,7 +179,7 @@ impl Op {
                 match byte2 {
                     0x9e => Ok(Op::SkipKey(register)),
                     0xa1 => Ok(Op::SkipNoKey(register)),
-                    _ => Err(format!("bad instruction: {:02x} {:02x}", byte1, byte2).into()),
+                    _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
                 }
             }
             0x0f => {
@@ -194,10 +194,10 @@ impl Op {
                     0x33 => Ok(Op::MovBcd(register)),
                     0x55 => Ok(Op::RegDump(register)),
                     0x65 => Ok(Op::RegLoad(register)),
-                    _ => Err(format!("bad instruction: {:02x} {:02x}", byte1, byte2).into()),
+                    _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
                 }
             }
-            _ => Err(format!("bad instruction: {:02x} {:02x}", byte1, byte2).into()),
+            _ => Err(format!("bad instruction: {byte1:02x} {byte2:02x}").into()),
         }
     }
 
@@ -205,35 +205,30 @@ impl Op {
         match self {
             Op::Cls => "CLS",
             Op::Rts => "RTS",
-            Op::Jump(_) => "JUMP",
+            Op::Jump(_) | Op::JumpPlusV0(_) => "JUMP",
             Op::Call(_) => "CALL",
             Op::Shr(_) => "SHR.",
             Op::Shl(_) => "SHL.",
-            Op::SetI(_) => "MVI",
-            Op::JumpPlusV0(_) => "JUMP",
+            Op::SetI(_) | Op::MviLit { .. } => "MVI",
             Op::SkipKey(_) => "SKIP.KEY",
             Op::SkipNoKey(_) => "SKIP.NOKEY",
-            Op::GetDelay(_) => "MOV",
+            Op::GetDelay(_)
+            | Op::Delay(_)
+            | Op::Sound(_)
+            | Op::Mov { .. } => "MOV",
             Op::GetKey(_) => "WAITKEY",
-            Op::Delay(_) => "MOV",
-            Op::Sound(_) => "MOV",
             Op::AddI(_) => "ADD",
             Op::SpriteChar(_) => "SPRITECHAR",
             Op::MovBcd(_) => "MOVBCD",
-            Op::RegDump(_) => "MOVM",
-            Op::RegLoad(_) => "MOVM",
-            Op::Mov { .. } => "MOV",
+            Op::RegDump(_) | Op::RegLoad(_) => "MOVM",
             Op::Or { .. } => "OR",
             Op::And { .. } => "AND",
             Op::Xor { .. } => "XOR",
             Op::Add { .. } => "ADD.",
             Op::Sub { .. } => "SUB.",
             Op::Subb { .. } => "SUBB.",
-            Op::SkipNe { .. } => "SKIP.NE",
-            Op::SkipEqLit { .. } => "SKIP.EQ",
-            Op::SkipNeLit { .. } => "SKIP.NE",
-            Op::SkipEq { .. } => "SKIP.EQ",
-            Op::MviLit { .. } => "MVI",
+            Op::SkipNe { .. } | Op::SkipNeLit { .. } => "SKIP.NE",
+            Op::SkipEqLit { .. } | Op::SkipEq { .. } => "SKIP.EQ",
             Op::AdiLit { .. } => "ADI",
             Op::Rand { .. } => "RNDMSK",
             Op::Draw { .. } => "SPRITE",

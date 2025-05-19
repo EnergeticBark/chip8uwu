@@ -49,7 +49,7 @@ fn draw_body_rows(mut body: TableBody, chip8_state: &State) {
     for v in 0..chip8_state.v.len() {
         body.row(14.0, |mut row| {
             row.col(|ui| {
-                ui.label(format!("V{:01X}", v));
+                ui.label(format!("V{v:01X}"));
             });
             row.col(|ui| {
                 ui.label(format!("0x{:02X}", chip8_state.v[v]));

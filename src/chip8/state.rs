@@ -10,7 +10,7 @@ pub const HEIGHT: usize = 32;
 
 const ROM_START: u16 = 0x200;
 const SCREEN_START: usize = 0xf00;
-const FONT_START: usize = 0x000;
+const FONT_START: u16 = 0x000;
 
 pub struct State {
     pub rom_loaded: bool,
@@ -42,7 +42,7 @@ impl State {
     }
 
     fn load_font(&mut self, font: Font) {
-        let mut mem_index = FONT_START;
+        let mut mem_index = FONT_START as usize;
         for char in font.0 {
             for line in char {
                 self.memory[mem_index] = line;
@@ -75,11 +75,11 @@ impl State {
         let pixel_bit_offset = ((y * 64) + x) % 8;
         let pixel_byte = &mut self.memory[address];
 
-        if (*pixel_byte << pixel_bit_offset) & 0b10000000 != 0 {
+        if (*pixel_byte << pixel_bit_offset) & 0b1000_0000 != 0 {
             flipped = true;
         }
         // shift the bit into position and then XOR it to the byte
-        *pixel_byte ^= 0b10000000 >> pixel_bit_offset;
+        *pixel_byte ^= 0b1000_0000 >> pixel_bit_offset;
 
         flipped
     }
@@ -119,9 +119,9 @@ impl State {
             }
             Op::SkipNeLit { v, lit } => {
                 if self.v[v as usize] != lit {
-                    self.pc += 2
+                    self.pc += 2;
                 }
-                self.pc += 2
+                self.pc += 2;
             }
             Op::SkipEq { v, v2 } => {
                 if self.v[v as usize] == self.v[v2 as usize] {
@@ -164,21 +164,21 @@ impl State {
                 let value2 = self.v[v2 as usize];
                 let (result, overflow) = value.overflowing_add(value2);
                 self.v[v as usize] = result;
-                self.v[0xF] = overflow as u8;
-                self.pc += 2
+                self.v[0xF] = u8::from(overflow);
+                self.pc += 2;
             }
             Op::Sub { v, v2 } => {
                 let value = self.v[v as usize];
                 let value2 = self.v[v2 as usize];
                 let (result, underflow) = value.overflowing_sub(value2);
                 self.v[v as usize] = result;
-                self.v[0xF] = !underflow as u8;
+                self.v[0xF] = u8::from(!underflow);
                 self.pc += 2;
             }
             Op::Shr(v) => {
                 let value = self.v[v as usize];
                 self.v[v as usize] = value >> 1;
-                self.v[0xF] = value & 0b00000001;
+                self.v[0xF] = value & 0b0000_0001;
                 self.pc += 2;
             }
             Op::Subb { v, v2 } => {
@@ -186,13 +186,13 @@ impl State {
                 let value2 = self.v[v2 as usize];
                 let (result, underflow) = value2.overflowing_sub(value);
                 self.v[v as usize] = result;
-                self.v[0xF] = !underflow as u8;
+                self.v[0xF] = u8::from(!underflow);
                 self.pc += 2;
             }
             Op::Shl(v) => {
                 let value = self.v[v as usize];
                 self.v[v as usize] = value << 1;
-                self.v[0xF] = (value & 0b10000000) >> 7;
+                self.v[0xF] = (value & 0b1000_0000) >> 7;
                 self.pc += 2;
             }
             Op::SkipNe { v, v2 } => {
@@ -206,30 +206,30 @@ impl State {
                 self.pc += 2;
             }
             Op::JumpPlusV0(address) => {
-                self.pc = address + self.v[0x0] as u16;
+                self.pc = address + u16::from(self.v[0x0]);
             }
             Op::Rand { v, lit } => {
                 let random_byte = random::<u8>();
                 self.v[v as usize] = lit & random_byte;
-                self.pc += 2
+                self.pc += 2;
             }
             Op::Draw { v, v2, lit } => {
                 let mut flipped = false;
-                for row in 0..=lit - 1 {
+                for row in 0..lit {
                     let line = self.memory[self.i as usize + row as usize];
                     for column in 0..8 {
-                        let pixel = line << column & 0b10000000;
+                        let pixel = line << column & 0b1000_0000;
                         if pixel != 0 {
-                            let x = self.v[v as usize] as usize + column as usize;
+                            let x = self.v[v as usize] as usize + column;
                             let y = self.v[v2 as usize] as usize + row as usize;
 
                             if self.xor_pixel(x, y) {
                                 flipped = true;
-                            };
+                            }
                         }
                     }
                 }
-                self.v[0xF] = flipped as u8;
+                self.v[0xF] = u8::from(flipped);
                 self.pc += 2;
             }
             Op::SkipKey(v) => {
@@ -251,9 +251,9 @@ impl State {
                 self.pc += 2;
             }
             Op::GetKey(v) => {
-                for (key, pressed) in self.keyboard.iter().enumerate() {
+                for (key, pressed) in (0..).zip(self.keyboard.iter()) {
                     if *pressed {
-                        self.v[v as usize] = key as u8;
+                        self.v[v as usize] = key;
                         self.pc += 2;
                         break;
                     }
@@ -268,7 +268,7 @@ impl State {
                 self.pc += 2;
             }
             Op::AddI(v) => {
-                let value = self.v[v as usize] as u16;
+                let value = u16::from(self.v[v as usize]);
                 self.i = self.i.wrapping_add(value);
                 self.pc += 2;
             }
@@ -277,7 +277,7 @@ impl State {
                 // each of the characters in our font are made up of 5 bytes,
                 // so we multiply this value by 5 and add FONT_START
                 // this is where our character's font lies in memory
-                self.i = FONT_START as u16 + self.v[v as usize] as u16 * 5;
+                self.i = FONT_START + u16::from(self.v[v as usize]) * 5;
                 self.pc += 2;
             }
             Op::MovBcd(v) => {
@@ -317,7 +317,7 @@ impl State {
                 self.memory[byte] << bit_offset
             };
 
-            if screen_bit & 0b10000000 != 0 {
+            if screen_bit & 0b1000_0000 != 0 {
                 // draw white
                 frame.push(0xff);
             } else {
