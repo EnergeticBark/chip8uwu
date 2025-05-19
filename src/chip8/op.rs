@@ -45,27 +45,11 @@ fn addr_from_opcode(byte1: u8, byte2: u8) -> u16 {
     (addr_high << 8) | addr_low
 }
 
-// Get the first 4-bit register part of a 16-bit opcode.
-// Example: Byte 1: 0x*X, Byte 2: 0x**
-// Returns: 0x0X
-fn reg1_from_opcode(byte1: u8, _: u8) -> u8 {
-    byte1 & 0x0f
-}
-
-// Get the second 4-bit register part of a 16-bit opcode.
-// Example: Byte 1: 0x**, Byte 2: 0xY*
-// Returns: 0x0Y
-fn reg2_from_opcode(_: u8, byte2: u8) -> u8 {
-    byte2 >> 4
-}
-
 impl Op {
     pub fn new(byte1: u8, byte2: u8) -> Result<Self, String> {
         let bad_instruction_error = Err(format!("bad instruction: {byte1:02x} {byte2:02x}"));
         
         let address = addr_from_opcode(byte1, byte2);
-        let v = reg1_from_opcode(byte1, byte2);
-        let v2 = reg2_from_opcode(byte1, byte2);
         let lit = byte2;
         
         let nibble1 = byte1 >> 4;
@@ -73,41 +57,41 @@ impl Op {
         let nibble3 = byte2 >> 4;
         let nibble4 = byte2 & 0x0f;
         
-        let op = match (nibble1, nibble3, nibble4) {
-            (0x0, 0xe, 0x0) => Op::Cls,
-            (0x0, 0xe, 0xe) => Op::Rts,
+        let op = match (nibble1, nibble2, nibble3, nibble4) {
+            (0x0, _, 0xe, 0x0) => Op::Cls,
+            (0x0, _, 0xe, 0xe) => Op::Rts,
             (0x1, ..) => Op::Jump(address),
             (0x2, ..) => Op::Call(address),
-            (0x3, ..)  => Op::SkipEqLit { v, lit },
-            (0x4, ..) => Op::SkipNeLit { v, lit },
-            (0x5, ..) => Op::SkipEq { v, v2 },
-            (0x6, ..) => Op::MviLit { v, lit },
-            (0x7, ..) => Op::AdiLit { v, lit },
-            (0x8, _, 0x0) => Op::Mov { v, v2 },
-            (0x8, _, 0x1) => Op::Or { v, v2 },
-            (0x8, _, 0x2) => Op::And { v, v2 },
-            (0x8, _, 0x3) => Op::Xor { v, v2 },
-            (0x8, _, 0x4) => Op::Add { v, v2 },
-            (0x8, _, 0x5) => Op::Sub { v, v2 },
-            (0x8, _, 0x6) => Op::Shr(v),
-            (0x8, _, 0x7) => Op::Subb { v, v2 },
-            (0x8, _, 0xe) => Op::Shl(v),
-            (0x9, ..) => Op::SkipNe { v, v2 },
+            (0x3, v, ..)  => Op::SkipEqLit { v, lit },
+            (0x4, v, ..) => Op::SkipNeLit { v, lit },
+            (0x5, v, v2, _) => Op::SkipEq { v, v2 },
+            (0x6, v, ..) => Op::MviLit { v, lit },
+            (0x7, v, ..) => Op::AdiLit { v, lit },
+            (0x8, v, v2, 0x0) => Op::Mov { v, v2 },
+            (0x8, v, v2, 0x1) => Op::Or { v, v2 },
+            (0x8, v, v2, 0x2) => Op::And { v, v2 },
+            (0x8, v, v2, 0x3) => Op::Xor { v, v2 },
+            (0x8, v, v2, 0x4) => Op::Add { v, v2 },
+            (0x8, v, v2, 0x5) => Op::Sub { v, v2 },
+            (0x8, v, _, 0x6) => Op::Shr(v),
+            (0x8, v, v2, 0x7) => Op::Subb { v, v2 },
+            (0x8, v, _, 0xe) => Op::Shl(v),
+            (0x9, v, v2, ..) => Op::SkipNe { v, v2 },
             (0xa, ..) => Op::SetI(address),
             (0xb, ..) => Op::JumpPlusV0(address),
-            (0xc, ..) => Op::Rand { v, lit },
-            (0xd, _, lit) => Op::Draw { v, v2, lit },
-            (0xe, 0x9, 0xe) => Op::SkipKey(v),
-            (0xe, 0xa, 0x1) => Op::SkipNoKey(v),
-            (0xf, 0x0, 0x7) => Op::GetDelay(v),
-            (0xf, 0x0, 0xa) => Op::GetKey(v),
-            (0xf, 0x1, 0x5) => Op::Delay(v),
-            (0xf, 0x1, 0x8) => Op::Sound(v),
-            (0xf, 0x1, 0xe) => Op::AddI(v),
-            (0xf, 0x2, 0x9) => Op::SpriteChar(v),
-            (0xf, 0x3, 0x3) => Op::MovBcd(v),
-            (0xf, 0x5, 0x5) => Op::RegDump(v),
-            (0xf, 0x6, 0x5) => Op::RegLoad(v),
+            (0xc, v, ..) => Op::Rand { v, lit },
+            (0xd, v, v2, lit) => Op::Draw { v, v2, lit },
+            (0xe, v, 0x9, 0xe) => Op::SkipKey(v),
+            (0xe, v, 0xa, 0x1) => Op::SkipNoKey(v),
+            (0xf, v, 0x0, 0x7) => Op::GetDelay(v),
+            (0xf, v, 0x0, 0xa) => Op::GetKey(v),
+            (0xf, v, 0x1, 0x5) => Op::Delay(v),
+            (0xf, v, 0x1, 0x8) => Op::Sound(v),
+            (0xf, v, 0x1, 0xe) => Op::AddI(v),
+            (0xf, v, 0x2, 0x9) => Op::SpriteChar(v),
+            (0xf, v, 0x3, 0x3) => Op::MovBcd(v),
+            (0xf, v, 0x5, 0x5) => Op::RegDump(v),
+            (0xf, v, 0x6, 0x5) => Op::RegLoad(v),
             _ => bad_instruction_error?,
         };
         Ok(op)
