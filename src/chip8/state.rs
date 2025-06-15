@@ -55,10 +55,10 @@ impl State {
     pub fn load_rom(&mut self, rom: &[u8]) {
         *self = Self::new();
         self.load_font(Font::new());
-
-        for (i, byte) in rom.iter().enumerate() {
-            self.memory[ROM_START as usize + i] = *byte;
-        }
+        
+        let rom_start_idx = ROM_START as usize;
+        let rom_end_idx = rom_start_idx + rom.len();
+        self.memory[rom_start_idx..rom_end_idx].copy_from_slice(rom);
         self.rom_loaded = true;
     }
 

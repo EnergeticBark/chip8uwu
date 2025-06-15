@@ -40,9 +40,9 @@ pub enum Op {
 // Example: Byte 1: 0x*X, Byte 2: 0xYY
 // Returns: 0x0XYY
 fn addr_from_opcode(byte1: u8, byte2: u8) -> u16 {
-    let addr_high = u16::from(byte1) & 0x0f;
-    let addr_low = u16::from(byte2);
-    (addr_high << 8) | addr_low
+    let addr_high = byte1 & 0x0f;
+    let addr_low = byte2;
+    u16::from_be_bytes([addr_high, addr_low])
 }
 
 impl Op {
